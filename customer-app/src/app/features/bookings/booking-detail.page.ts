@@ -846,7 +846,7 @@ export class BookingDetailPage implements OnInit, OnDestroy {
     const payment = String(booking.paymentStatus || "").toLowerCase();
     if (["refunded"].includes(payment)) return "Already refunded to your original payment method.";
     if (paid > 0) return `${this.money(refund)} estimated refund before cancellation.`;
-    return "No online payment found, so refund amount is Rs 0.";
+    return "No online payment found, so refund amount is ₹0.";
   });
 
   readonly cancelFeeLine = computed<string | null>(() => {

@@ -101,7 +101,7 @@ interface ConsultationChatMessage {
                   </label>
                   <label>
                     <span>Budget</span>
-                    <input [(ngModel)]="problemProfile.budget" placeholder="Under INR 5000" />
+                    <input [(ngModel)]="problemProfile.budget" placeholder="Under ₹5,000" />
                   </label>
                   <label>
                     <span>History</span>

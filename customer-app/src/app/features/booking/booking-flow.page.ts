@@ -808,7 +808,7 @@ type BookingFlowItem = {
             } @else {
               <ion-button class="primary-gradient" [disabled]="!canConfirm() || marketplace.loading() || bookingSubmitting()" (click)="confirmBooking()">
                   @if (marketplace.loading() || bookingSubmitting()) { <span class="button-spinner" aria-hidden="true"></span> }
-                  <span>{{ isRescheduling() ? "Confirm changes" : (marketplace.isAuthenticated() ? "Confirm booking" : "Sign in to book") }}</span>
+                  <span>{{ bookingSubmitting() ? "Confirming..." : isRescheduling() ? "Confirm changes" : (marketplace.isAuthenticated() ? "Confirm booking" : "Sign in to book") }}</span>
               </ion-button>
             }
             </div>

@@ -129,16 +129,23 @@ type CheckInState = { kind: "available" | "checked_in" | "unavailable" | "hidden
           } @else {
             <section class="empty premium-card">
               <h2>{{ emptyTitle() }}</h2>
-              <ion-button class="primary-gradient" [routerLink]="discoverLink()">{{ emptyActionLabel() }}</ion-button>
+              <p>{{ emptyDescription() }}</p>
+              <div class="empty-actions">
+                <ion-button class="primary-gradient" [routerLink]="discoverLink()">{{ emptyActionLabel() }}</ion-button>
+                <ion-button fill="outline" class="secondary-button" [routerLink]="supportLink()">Need help?</ion-button>
+              </div>
             </section>
           }
         } @else if (tabBusy()[tab()]) {
-          <section class="empty premium-card"><h2>Loading bookings</h2></section>
+          <section class="empty premium-card" aria-busy="true"><h2>Loading bookings</h2><p>Checking your latest appointments and visit history.</p></section>
         } @else if (marketplace.error()) {
           <section class="empty premium-card error">
             <h2>Could not load bookings</h2>
             <p>{{ marketplace.error() }}</p>
-            <ion-button class="primary-gradient" (click)="reload()">Retry</ion-button>
+            <div class="empty-actions">
+              <ion-button class="primary-gradient" (click)="reload()">Retry</ion-button>
+              <ion-button fill="outline" class="secondary-button" [routerLink]="supportLink()">Contact support</ion-button>
+            </div>
           </section>
         }
       </main>
@@ -178,7 +185,7 @@ type CheckInState = { kind: "available" | "checked_in" | "unavailable" | "hidden
       display: grid;
       margin: 0 calc(var(--page-x, 0px) * -1) 18px;
       padding: calc(8px + env(safe-area-inset-top)) var(--page-x, 0px) 8px;
-      background: linear-gradient(180deg, rgba(255, 250, 246, 0.98), rgba(255, 250, 246, 0.94));
+      background: linear-gradient(180deg, rgba(247, 244, 253, 0.98), rgba(247, 244, 253, 0.9));
       backdrop-filter: blur(18px);
     }
 
@@ -601,13 +608,34 @@ type CheckInState = { kind: "available" | "checked_in" | "unavailable" | "hidden
       display: grid;
       justify-items: center;
       gap: 10px;
-      padding: 34px 22px;
+      padding: 30px 20px;
+      border-style: solid;
       text-align: center;
     }
 
     .empty h2 {
       margin: 0;
+      font-size: clamp(1.25rem, 5vw, 1.7rem);
       letter-spacing: -0.04em;
+    }
+
+    .empty p {
+      max-width: 420px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
+    .empty-actions {
+      width: min(100%, 360px);
+      display: grid;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .empty-actions ion-button::part(native) {
+      text-transform: none;
     }
 
     .cancel-backdrop {
@@ -798,6 +826,13 @@ export class BookingsPage implements OnDestroy, OnInit {
     }
   });
   readonly emptyActionLabel = computed(() => this.tab() === "upcoming" ? "Find a place" : "Book a visit");
+  readonly emptyDescription = computed(() => {
+    switch (this.tab()) {
+      case "past": return "Completed appointments will appear here after your salon visit, with quick rebooking when available.";
+      case "cancelled": return "Cancelled appointments stay here for reference so your active schedule stays clean.";
+      default: return "You have no upcoming appointments. Choose a salon and book a time that fits your day.";
+    }
+  });
   private midnightRefreshId: ReturnType<typeof setTimeout> | null = null;
 
   constructor(readonly marketplace: MarketplaceService, private readonly router: Router, private readonly toasts: ToastController, private readonly route: ActivatedRoute, private readonly location: Location) {

@@ -2,7 +2,7 @@ import { Component, OnInit, computed, signal } from "@angular/core";
 import { Router, RouterLink } from "@angular/router";
 import { IonBackButton, IonButton, IonContent, IonIcon } from "@ionic/angular/standalone";
 import { addIcons } from "ionicons";
-import { calendarOutline, ellipsisVerticalOutline, notificationsOutline, pricetagOutline, walletOutline } from "ionicons/icons";
+import { calendarOutline, chevronForwardOutline, ellipsisVerticalOutline, notificationsOutline, pricetagOutline, shieldCheckmarkOutline, walletOutline } from "ionicons/icons";
 import { CustomerNotification } from "../../core/api.types";
 import { MarketplaceService } from "../../core/marketplace.service";
 import { CustomerApiService } from "../../core/customer-api.service";
@@ -79,7 +79,7 @@ type NotificationFilter = "all" | "unread" | "bookings" | "payments" | "offers";
                 @if (visibleNotifications().length) {
                   <div class="wallet-transactions">
                     @for (item of visibleNotifications(); track item.id) {
-                      <article class="wallet-transaction" [class.unread]="isUnread(item)" (click)="openNotification(item)">
+                      <article class="wallet-transaction" [class.unread]="isUnread(item)" role="button" tabindex="0" [attr.aria-label]="notificationLabel(item)" (click)="openNotification(item)" (keydown)="handleNotificationKeydown($event, item)">
                         <div class="transaction-icon">
                           <ion-icon [name]="iconFor(item)" aria-hidden="true"></ion-icon>
                         </div>
@@ -268,7 +268,7 @@ export class NotificationsPage implements OnInit {
   readonly filteredNotifications = computed(() => this.notifications().filter((item) => this.matchesFilter(item)));
 
   constructor(readonly marketplace: MarketplaceService, private readonly router: Router, private readonly api: CustomerApiService) {
-    addIcons({ calendarOutline, ellipsisVerticalOutline, notificationsOutline, pricetagOutline, walletOutline });
+    addIcons({ calendarOutline, chevronForwardOutline, ellipsisVerticalOutline, notificationsOutline, pricetagOutline, shieldCheckmarkOutline, walletOutline });
   }
 
   backHref(): string {
@@ -357,6 +357,16 @@ export class NotificationsPage implements OnInit {
     this.persist(next);
     if (item.status !== "read") this.api.updateNotificationStatus(item.id, "read").subscribe({ error: () => undefined });
     void this.router.navigateByUrl(this.deepLinkFor(item));
+  }
+
+  handleNotificationKeydown(event: KeyboardEvent, item: CustomerNotification) {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    this.openNotification(item);
+  }
+
+  notificationLabel(item: CustomerNotification): string {
+    return `${this.isUnread(item) ? "Unread" : "Read"} notification: ${this.titleFor(item)}. Open destination.`;
   }
 
   iconFor(item: CustomerNotification): string {

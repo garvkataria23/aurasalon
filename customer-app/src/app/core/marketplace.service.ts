@@ -434,8 +434,9 @@ private readSalonModeContext(): SalonModeContext | null {
   }
 
   private setBusinesses(rows: Business[]) {
-    this.businesses.set(rows);
-    this.persistBusinessesCache(rows);
+    const uniqueRows = this.uniqueBusinesses(rows);
+    this.businesses.set(uniqueRows);
+    this.persistBusinessesCache(uniqueRows);
   }
 
   private hydrateBusinessesCache(): void {
@@ -445,7 +446,7 @@ private readSalonModeContext(): SalonModeContext | null {
       const parsed = JSON.parse(raw) as { at?: number; rows?: Business[] };
       if (!parsed?.at || !Array.isArray(parsed.rows)) return;
       if (parsed.at < Date.now() - MarketplaceService.PUBLIC_BUSINESSES_CACHE_TTL_MS) return;
-      const rows = parsed.rows.map((business) => this.normalizeBusiness(business));
+      const rows = this.uniqueBusinesses(parsed.rows.map((business) => this.normalizeBusiness(business)));
       if (!rows.length) return;
       this.businesses.set(rows);
     } catch {
@@ -466,8 +467,7 @@ private readSalonModeContext(): SalonModeContext | null {
     const isDefault = Object.keys(params).length === 0;
     const requestId = ++this.businessesRequestCounter;
     return this.cachedLoad("public-businesses", key, MarketplaceService.PUBLIC_BUSINESSES_CACHE_TTL_MS, "Unable to load businesses", force, async () => {
-      const rows = (await firstValueFrom(this.api.listPublicBusinesses(params))).map((business) => this.normalizeBusiness(business));
-      return rows;
+      return this.uniqueBusinesses((await firstValueFrom(this.api.listPublicBusinesses(params))).map((business) => this.normalizeBusiness(business)));
     }, (rows) => {
       if (requestId !== this.businessesRequestCounter) return;
       this.setBusinesses(rows);
@@ -478,8 +478,7 @@ private readSalonModeContext(): SalonModeContext | null {
     const key = this.businessListKey(params);
     const requestId = ++this.businessesRequestCounter;
     return this.cachedLoad("search", key, this.BUSINESS_CACHE_TTL_MS, "Search service is unavailable. Please try again.", force, async () => {
-      const rows = (await firstValueFrom(this.api.searchPublicBusinesses(params))).map((business) => this.normalizeBusiness(business));
-      return rows;
+      return this.uniqueBusinesses((await firstValueFrom(this.api.searchPublicBusinesses(params))).map((business) => this.normalizeBusiness(business)));
     }, (rows) => {
       if (requestId !== this.businessesRequestCounter) return;
       this.setBusinesses(rows);
@@ -971,6 +970,35 @@ private readSalonModeContext(): SalonModeContext | null {
       reviews: business.reviews ?? [],
       businessHours: business.businessHours ?? []
     };
+  }
+
+  private uniqueBusinesses(rows: Business[]): Business[] {
+    const seen = new Set<string>();
+    return rows.filter((business) => {
+      const key = this.businessIdentityKey(business);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }
+
+  private businessIdentityKey(business: Business): string {
+    const tenantId = this.identityPart(business.tenantId);
+    const branchId = this.identityPart(business.branchId);
+    const id = this.identityPart(business.id);
+    if (tenantId && branchId) return `tenant-branch:${tenantId}:${branchId}`;
+    if (tenantId && id) return `tenant-id:${tenantId}:${id}`;
+    if (branchId && id) return `branch-id:${branchId}:${id}`;
+    if (id) return `id:${id}`;
+    const slug = this.identityPart(business.slug);
+    if (slug) return `slug:${slug}`;
+    return [business.businessName, business.address, business.area, business.city]
+      .map((value) => this.identityPart(value))
+      .join(":");
+  }
+
+  private identityPart(value: string | undefined | null): string {
+    return String(value || "").trim().toLowerCase();
   }
 
   /**

@@ -1461,7 +1461,7 @@ const hubConfigs: Record<string, HubConfig> = {
                     <div class="wallet-guide-list">
                       <div>
                         <span class="guide-number">01</span>
-                        <p><strong>Purchase</strong><small>Buy a gift card for any amount starting from &rsquo;100. Instant digital delivery.</small></p>
+                        <p><strong>Purchase</strong><small>Buy a gift card for any amount. Starting from ₹100 with instant digital delivery.</small></p>
                       </div>
                       <div>
                         <span class="guide-number">02</span>
@@ -2315,7 +2315,7 @@ const hubConfigs: Record<string, HubConfig> = {
 
     .wallet-screen {
       display: grid;
-      gap: clamp(18px, 3vw, 28px);
+      gap: clamp(14px, 3vw, 24px);
       color: var(--text);
     }
 
@@ -2356,7 +2356,7 @@ const hubConfigs: Record<string, HubConfig> = {
       align-items: center;
       gap: 10px;
       margin-top: 0;
-      margin-left: 30px;
+      margin-left: 0;
     }
 
     .wallet-title-row h1 {
@@ -2364,14 +2364,12 @@ const hubConfigs: Record<string, HubConfig> = {
     }
 
     .wallet-heading .wallet-eyebrow {
-      margin-left: 30px;
+      margin-left: 0;
       line-height: 1;
     }
 
     .content-back-button {
-      position: absolute;
-      left: -60px;
-      top: -21px;
+      position: static;
       width: 38px;
       height: 38px;
       min-width: 38px;
@@ -2385,7 +2383,7 @@ const hubConfigs: Record<string, HubConfig> = {
       font-size: 25px;
       line-height: 1;
       cursor: pointer;
-      filter: drop-shadow(0.45px 0 0 var(--brand-950));
+      filter: drop-shadow(0.35px 0 0 var(--brand-950));
     }
 
     .content-back-button:active { transform: scale(0.94); }
@@ -3048,7 +3046,7 @@ const hubConfigs: Record<string, HubConfig> = {
     }
 
     .wallet-empty {
-      padding: clamp(28px, 6vw, 54px) clamp(18px, 4vw, 30px);
+      padding: clamp(24px, 5vw, 46px) clamp(18px, 4vw, 30px);
     }
 
     .wallet-state {
@@ -3077,9 +3075,9 @@ const hubConfigs: Record<string, HubConfig> = {
 
     .wallet-empty h3,
     .wallet-state h2 {
-      margin-top: 17px;
+      margin-top: 14px;
       color: var(--brand-950);
-      font-size: clamp(1.2rem, 3vw, 1.55rem);
+      font-size: clamp(1.12rem, 3vw, 1.42rem);
       font-weight: 900;
       letter-spacing: -0.03em;
     }
@@ -3089,7 +3087,7 @@ const hubConfigs: Record<string, HubConfig> = {
       max-width: 520px;
       margin-top: 7px;
       color: var(--muted);
-      font-size: 0.82rem;
+      font-size: 0.9rem;
       line-height: 1.55;
     }
 

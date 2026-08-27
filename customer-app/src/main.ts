@@ -1,5 +1,5 @@
 import { bootstrapApplication } from "@angular/platform-browser";
-import { RouteReuseStrategy, provideRouter, withPreloading, PreloadAllModules } from "@angular/router";
+import { RouteReuseStrategy, provideRouter } from "@angular/router";
 import { provideHttpClient, withInterceptors } from "@angular/common/http";
 import { provideIonicAngular } from "@ionic/angular/standalone";
 import { AppComponent } from "./app/app.component";
@@ -12,7 +12,7 @@ bootstrapApplication(AppComponent, {
   providers: [
     provideIonicAngular({ animated: false }),
     provideHttpClient(withInterceptors([csrfInterceptor, authInterceptor])),
-    provideRouter(routes, withPreloading(PreloadAllModules)),
+    provideRouter(routes),
     { provide: RouteReuseStrategy, useClass: TabRouteReuseStrategy }
   ]
 }).catch((error) => console.error(error));

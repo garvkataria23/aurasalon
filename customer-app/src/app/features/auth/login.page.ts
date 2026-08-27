@@ -958,10 +958,6 @@ export class LoginPage implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
-    if (!environment.production && window.location.hostname === "127.0.0.1") {
-      window.location.replace(`http://localhost:${window.location.port}${window.location.pathname}${window.location.search}${window.location.hash}`);
-      return;
-    }
     this.auth.error.set("");
     void this.resumeExistingSession();
     void this.handleProviderRedirectResult();

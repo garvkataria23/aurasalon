@@ -599,9 +599,9 @@ import { Booking, CustomerNotificationPreferences, CustomerProfile, CustomerSalo
 
     .menu-group-title {
       margin: 0;
-      padding: 16px 18px 6px;
+      padding: 16px 18px 8px;
       color: var(--muted);
-      font-size: 0.80rem;
+      font-size: 0.76rem;
       font-weight: 950;
       letter-spacing: 0.12em;
       text-transform: uppercase;
@@ -610,13 +610,15 @@ import { Booking, CustomerNotificationPreferences, CustomerProfile, CustomerSalo
     .menu a,
     .menu-item {
       display: grid;
-      grid-template-columns: 24px minmax(0, 1fr) 20px;
-      gap: 12px;
+      grid-template-columns: 22px minmax(0, 1fr) 18px;
+      gap: 11px;
       align-items: center;
-      min-height: 48px;
+      min-height: 54px;
       padding: 0 18px;
       color: var(--text);
-      font-weight: 900;
+      font-size: 0.96rem;
+      font-weight: 850;
+      letter-spacing: -0.015em;
       text-decoration: none;
     }
 
@@ -626,9 +628,9 @@ import { Booking, CustomerNotificationPreferences, CustomerProfile, CustomerSalo
 
     .menu ion-icon {
       color: var(--muted);
-      width: 24px;
-      height: 24px;
-      font-size: 1.08rem;
+      width: 22px;
+      height: 22px;
+      font-size: 1rem;
     }
 
     .menu a .menu-chevron {
@@ -783,8 +785,12 @@ import { Booking, CustomerNotificationPreferences, CustomerProfile, CustomerSalo
 
       .menu a,
       .menu-item {
-        min-height: 48px;
+        min-height: 52px;
         padding: 0 14px;
+      }
+
+      .menu-group-title {
+        padding: 14px 14px 7px;
       }
     }
 

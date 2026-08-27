@@ -148,9 +148,15 @@ interface SuccessState {
           </div>
         </section>
         } @else {
-          <section class="success-card premium-card">
-            <h1>No booking loaded</h1>
-            <ion-button expand="block" class="primary-gradient" [routerLink]="bookingsLink()">View bookings</ion-button>
+          <section class="success-card premium-card recovery-card">
+            <p class="eyebrow">Booking recovery</p>
+            <h1>No confirmed appointment found</h1>
+            <p class="muted">This page shows after a successful booking. If you refreshed or opened it directly, check your bookings or start a new appointment.</p>
+            <div class="recovery-actions">
+              <ion-button expand="block" class="primary-gradient" [routerLink]="bookingsLink()">View my bookings</ion-button>
+              <ion-button expand="block" fill="outline" class="secondary-button" [routerLink]="bookAgainLink()">Start a booking</ion-button>
+              <ion-button expand="block" fill="clear" [routerLink]="homeLink()">{{ marketplace.salonMode() ? 'Back to My Salon' : 'Explore salons' }}</ion-button>
+            </div>
           </section>
         }
       </main>
@@ -177,6 +183,31 @@ interface SuccessState {
       animation-duration: var(--motion-slow);
       animation-iteration-count: 1;
       transform: none;
+    }
+
+    .recovery-card {
+      place-items: stretch;
+      gap: 14px;
+      padding: clamp(22px, 6vw, 30px);
+    }
+
+    .recovery-card .muted {
+      margin: 0;
+      line-height: 1.55;
+    }
+
+    .recovery-actions {
+      display: grid;
+      gap: 10px;
+    }
+
+    .recovery-actions ion-button {
+      margin: 0;
+    }
+
+    .actions ion-button::part(native),
+    .recovery-actions ion-button::part(native) {
+      text-transform: none;
     }
 
     .success-head {

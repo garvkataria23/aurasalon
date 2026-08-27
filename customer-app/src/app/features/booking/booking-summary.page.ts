@@ -65,8 +65,14 @@ import { MarketplaceService } from "../../core/marketplace.service";
           </section>
         } @else {
           <section class="premium-card empty-state">
-            <h2>No booking loaded</h2>
-            <ion-button class="primary-gradient" [routerLink]="discoverLink()">Discover salons</ion-button>
+            <span class="empty-kicker">Booking recovery</span>
+            <h2>No appointment is ready to review</h2>
+            <p class="muted">This summary opens after you choose a salon, service, staff and slot. Start a new booking or return to your saved appointments.</p>
+            <div class="empty-actions">
+              <ion-button class="primary-gradient" [routerLink]="startBookingLink()">Start a booking</ion-button>
+              <ion-button fill="outline" class="secondary-button" [routerLink]="bookingsLink()">View my bookings</ion-button>
+              <ion-button fill="clear" [routerLink]="discoverLink()">Explore salons</ion-button>
+            </div>
           </section>
         }
       </main>
@@ -75,7 +81,7 @@ import { MarketplaceService } from "../../core/marketplace.service";
   styles: [`
     .summary-page {
       display: grid;
-      gap: 14px;
+      gap: 12px;
     }
 
     .summary-hero,
@@ -83,7 +89,7 @@ import { MarketplaceService } from "../../core/marketplace.service";
     .price-card,
     .policy-card,
     .empty-state {
-      padding: 22px;
+      padding: clamp(18px, 5vw, 22px);
     }
 
     .summary-hero {
@@ -114,8 +120,11 @@ import { MarketplaceService } from "../../core/marketplace.service";
     }
 
     .summary-hero h1 {
-      font-size: clamp(2rem, 6vw, 3.8rem);
-      line-height: 0.98;
+      max-width: 12ch;
+      font-size: clamp(1.85rem, 8vw, 3rem);
+      line-height: 1;
+      overflow-wrap: normal;
+      word-break: normal;
     }
 
     .summary-heading {
@@ -197,6 +206,39 @@ import { MarketplaceService } from "../../core/marketplace.service";
       gap: 10px;
     }
 
+    .empty-state {
+      display: grid;
+      gap: 14px;
+      text-align: left;
+    }
+
+    .empty-kicker {
+      width: fit-content;
+      padding: 6px 10px;
+      border-radius: 999px;
+      color: var(--primary);
+      background: var(--primary-soft);
+      font-size: 0.76rem;
+      font-weight: 950;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .empty-actions {
+      display: grid;
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    .empty-actions ion-button {
+      margin: 0;
+    }
+
+    .empty-actions ion-button::part(native),
+    .summary-actions ion-button::part(native) {
+      text-transform: none;
+    }
+
     @media (max-width: 599px) {
       .summary-heading,
       .summary-list div,
@@ -251,6 +293,17 @@ export class BookingSummaryPage {
 
   discoverLink(): string {
     return this.marketplace.salonMode() ? this.marketplace.salonModeUrl() : "/tabs/search";
+  }
+
+  startBookingLink(): string {
+    const context = this.marketplace.salonModeContext();
+    const business = context?.businessId ? this.marketplace.findBusiness(context.businessId) : null;
+    if (business?.slug) return this.marketplace.salonModeUrl("business", business.slug, "book");
+    return this.discoverLink();
+  }
+
+  bookingsLink(): string {
+    return this.marketplace.salonMode() ? this.marketplace.salonModeUrl("bookings") : "/tabs/bookings";
   }
 
   addToCalendar(booking: Booking) {

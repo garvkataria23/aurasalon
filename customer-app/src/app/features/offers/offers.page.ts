@@ -3,6 +3,7 @@ import { RouterLink } from "@angular/router";
 import { IonButton, IonContent } from "@ionic/angular/standalone";
 import { BusinessCardComponent } from "../../shared/business-card.component";
 import { CustomerMobileHeaderComponent } from "../../shared/customer-mobile-header.component";
+import { Business } from "../../core/api.types";
 import { MarketplaceService } from "../../core/marketplace.service";
 
 @Component({
@@ -123,7 +124,7 @@ import { MarketplaceService } from "../../core/marketplace.service";
   `]
 })
 export class OffersPage implements OnInit {
-  readonly offerBusinesses = computed(() => this.marketplace.businesses());
+  readonly offerBusinesses = computed(() => this.uniqueOfferBusinesses(this.marketplace.businesses()));
 
   constructor(readonly marketplace: MarketplaceService) {}
 
@@ -133,5 +134,15 @@ export class OffersPage implements OnInit {
 
   reload() {
     void this.marketplace.loadPublicBusinesses({ offers: true }).catch(() => undefined);
+  }
+
+  private uniqueOfferBusinesses(businesses: Business[]): Business[] {
+    const seen = new Set<string>();
+    return businesses.filter((business) => {
+      const key = [business.tenantId, business.branchId, business.id || business.slug || business.businessName].map((value) => String(value || "").trim().toLowerCase()).join(":");
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
   }
 }

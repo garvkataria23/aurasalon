@@ -139,9 +139,9 @@ import { Business } from "../../core/api.types";
       display: grid;
       width: 100%;
       max-width: 1240px;
-      gap: 14px;
+      gap: 16px;
       margin: 0 auto;
-      padding: 12px 16px calc(76px + env(safe-area-inset-bottom));
+      padding: 14px 16px calc(84px + env(safe-area-inset-bottom));
       overflow-x: clip;
       scroll-padding-bottom: calc(76px + env(safe-area-inset-bottom));
     }
@@ -157,14 +157,14 @@ import { Business } from "../../core/api.types";
 
     .explore-header {
       display: grid;
-      gap: 0;
+      gap: 2px;
       padding-top: 0;
     }
 
     .explore-header h1 {
       margin: 0;
       color: var(--text);
-      font-size: clamp(1.75rem, 8vw, 2.2rem);
+      font-size: clamp(1.9rem, 9vw, 2.45rem);
       font-weight: 950;
       letter-spacing: -0.045em;
       line-height: 1;
@@ -207,8 +207,8 @@ import { Business } from "../../core/api.types";
 
     .search-command {
       display: grid;
-      gap: 6px;
-      padding: 7px;
+      gap: 8px;
+      padding: 8px;
       border: 1px solid var(--border);
       border-radius: 18px;
       background: var(--surface);
@@ -266,7 +266,7 @@ import { Business } from "../../core/api.types";
     .explore-chips {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 8px;
+      gap: 10px;
       padding: 0;
     }
 
@@ -313,8 +313,8 @@ import { Business } from "../../core/api.types";
     .explore-section-head h2 {
       margin: 3px 0 0;
       color: var(--text);
-      font-size: clamp(1.2rem, 5.4vw, 1.5rem);
-      font-weight: 950;
+      font-size: clamp(1.18rem, 5vw, 1.45rem);
+      font-weight: 900;
       letter-spacing: -0.03em;
       line-height: 1.08;
     }
@@ -342,7 +342,7 @@ import { Business } from "../../core/api.types";
       border: 1px solid rgba(124, 99, 223, 0.2);
       border-radius: 18px;
       color: var(--text);
-      background: linear-gradient(135deg, var(--primary-soft), var(--surface));
+      background: linear-gradient(135deg, rgba(225, 214, 251, 0.7), var(--surface));
       text-decoration: none;
       transition: border-color 160ms ease, box-shadow 160ms ease;
     }
@@ -876,7 +876,8 @@ export class ExplorePage implements OnInit {
   }
 
   private shortLabel(label: string): string {
-    const words = String(label || "").split(/\s+/).filter(Boolean);
+    const normalized = String(label || "").replace(/\bcompliment\s*ory\b/i, "Complimentary");
+    const words = normalized.split(/\s+/).filter(Boolean);
     if (!words.length) return label || "Other";
     if (words.length === 1) return words[0].slice(0, 16);
     const first = words[0];

@@ -1,9 +1,7 @@
-import { Component, OnDestroy, OnInit, signal } from "@angular/core";
+import { Component, Injector, OnDestroy, OnInit, signal } from "@angular/core";
 import { IonApp, IonRouterOutlet } from "@ionic/angular/standalone";
 import { NavigationEnd, NavigationStart, Router } from "@angular/router";
 import { filter, Subscription } from "rxjs";
-import { SplashScreen } from "@capacitor/splash-screen";
-import { CustomerPushNotificationService } from "./core/customer-push-notification.service";
 import { MarketplaceService } from "./core/marketplace.service";
 
 const ACCESS_TOKEN_KEY = "auraCustomerAccessToken";
@@ -106,10 +104,10 @@ export class AppComponent implements OnInit, OnDestroy {
   readonly launchImageFailed = signal(false);
   private launchCompleted = false;
 
-  constructor(private readonly router: Router, private readonly pushNotifications: CustomerPushNotificationService, private readonly marketplace: MarketplaceService) {}
+  constructor(private readonly router: Router, private readonly injector: Injector, private readonly marketplace: MarketplaceService) {}
 
   ngOnInit() {
-    void this.pushNotifications.initialize();
+    void this.initializePushNotifications();
     this.navigationSubscription = this.router.events
       .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
       .subscribe((event) => {
@@ -184,7 +182,9 @@ export class AppComponent implements OnInit, OnDestroy {
     this.launchCompleted = true;
     this.launchClosing.set(true);
     window.setTimeout(() => this.launchVisible.set(false), 220);
-    SplashScreen.hide().catch(() => undefined);
+    void import("@capacitor/splash-screen")
+      .then(({ SplashScreen }) => SplashScreen.hide())
+      .catch(() => undefined);
   }
 
   /** Prefetches tab data once, in the background, after the app is up. */
@@ -192,5 +192,14 @@ export class AppComponent implements OnInit, OnDestroy {
     if (this.primaryTabsPrefetched) return;
     this.primaryTabsPrefetched = true;
     window.setTimeout(() => this.marketplace.prefetchPrimaryTabs(), 250);
+  }
+
+  private async initializePushNotifications(): Promise<void> {
+    try {
+      const { CustomerPushNotificationService } = await import("./core/customer-push-notification.service");
+      await this.injector.get(CustomerPushNotificationService).initialize();
+    } catch {
+      // Native push support is optional for web sessions.
+    }
   }
 }

@@ -1,0 +1,271 @@
+[
+  {
+    "name": "00-login-before-demo",
+    "route": "/login",
+    "requestedRoute": "/login",
+    "url": "http://127.0.0.1:4310/login",
+    "title": "Aura Booking",
+    "h1": "Book salon visits without calling.",
+    "body": "AURA CUSTOMER APP\n\nBook salon visits without calling.\n\nSearch nearby salons, compare services, save offers, and manage bookings from one clean mobile app.\n\nLive slots\nRewards\nFast OTP\nEmail\nContinue\nOR\nContinue with mobile\nContinue with Facebook\nContinue with Google\nContinue with WhatsApp\nDemo login as garvkataria\nContinue as guest"
+  },
+  {
+    "name": "00-demo-tap",
+    "route": "tap",
+    "clicked": true,
+    "url": "http://127.0.0.1:4310/tabs/home",
+    "token": true,
+    "body": "Choose location\nSearch services or salons\nMake time for yourself\n\nFind a service that fits your day.\n\nExplore\nTV\nYOUR PRIMARY SALON\nThakur Village\nSet 10d ago\nBook\nRewards\nWallet\nFROM YOUR VISITS\nBook again\nAS\nAura Salon Indiranagar\nFull Fronts Bleach\nAS\nAura Salon Group\nFull Body Bleach\nMORE TO DO\nQuick actions\nOffers\nWallet\nRewards\nGift Cards\nPackages\nHome\nExplore\nBookings\nMy Salon"
+  },
+  {
+    "name": "00-after-demo-login",
+    "route": "/tabs/home",
+    "requestedRoute": "/tabs/home",
+    "url": "http://127.0.0.1:4310/tabs/home",
+    "title": "Aura Booking",
+    "h1": "Welcome back, Garv",
+    "body": "Choose location\nSearch services or salons\nMake time for yourself\n\nFind a service that fits your day.\n\nExplore\nTV\nYOUR PRIMARY SALON\nThakur Village\nSet 10d ago\nBook\nRewards\nWallet\nFROM YOUR VISITS\nBook again\nAS\nAura Salon Indiranagar\nFull Fronts Bleach\nAS\nAura Salon Group\nFull Body Bleach\nMORE TO DO\nQuick actions\nOffers\nWallet\nRewards\nGift Cards\nPackages\nHome\nExplore\nBookings\nMy Salon"
+  },
+  {
+    "name": "01-onboarding",
+    "route": "/onboarding",
+    "requestedRoute": "/onboarding",
+    "url": "http://127.0.0.1:4310/tabs/home",
+    "title": "Aura Booking",
+    "h1": "Welcome back, Garv",
+    "body": "Choose location\nSearch services or salons\nMake time for yourself\n\nFind a service that fits your day.\n\nExplore\nTV\nYOUR PRIMARY SALON\nThakur Village\nSet 10d ago\nBook\nRewards\nWallet\nFROM YOUR VISITS\nBook again\nAS\nAura Salon Indiranagar\nFull Fronts Bleach\nAS\nAura Salon Group\nFull Body Bleach\nMORE TO DO\nQuick actions\nOffers\nWallet\nRewards\nGift Cards\nPackages\nHome\nExplore\nBookings\nMy Salon"
+  },
+  {
+    "name": "02-login",
+    "route": "/login",
+    "requestedRoute": "/login",
+    "url": "http://127.0.0.1:4310/tabs/home",
+    "title": "Aura Booking",
+    "h1": "Book salon visits without calling.",
+    "body": "Choose location\nSearch services or salons\nMake time for yourself\n\nFind a service that fits your day.\n\nExplore\nTV\nYOUR PRIMARY SALON\nThakur Village\nSet 10d ago\nBook\nRewards\nWallet\nFROM YOUR VISITS\nBook again\nAS\nAura Salon Indiranagar\nFull Fronts Bleach\nAS\nAura Salon Group\nFull Body Bleach\nMORE TO DO\nQuick actions\nOffers\nWallet\nRewards\nGift Cards\nPackages\nHome\nExplore\nBookings\nMy Salon"
+  },
+  {
+    "name": "03-signup",
+    "route": "/signup",
+    "requestedRoute": "/signup",
+    "url": "http://127.0.0.1:4310/tabs/home",
+    "title": "Aura Booking",
+    "h1": "Book salon visits without calling.",
+    "body": "Choose location\nSearch services or salons\nMake time for yourself\n\nFind a service that fits your day.\n\nExplore\nTV\nYOUR PRIMARY SALON\nThakur Village\nSet 10d ago\nBook\nRewards\nWallet\nFROM YOUR VISITS\nBook again\nAS\nAura Salon Indiranagar\nFull Fronts Bleach\nAS\nAura Salon Group\nFull Body Bleach\nMORE TO DO\nQuick actions\nOffers\nWallet\nRewards\nGift Cards\nPackages\nHome\nExplore\nBookings\nMy Salon"
+  },
+  {
+    "name": "04-verify-otp",
+    "route": "/verify-otp",
+    "requestedRoute": "/verify-otp",
+    "url": "http://127.0.0.1:4310/verify-otp",
+    "title": "Aura Booking",
+    "h1": "Confirm your OTP",
+    "body": "Confirm your OTP\n\nEnter the 6-digit code sent to your phone.\n\nVerify and continue"
+  },
+  {
+    "name": "05-home",
+    "route": "/tabs/home",
+    "requestedRoute": "/tabs/home",
+    "url": "http://127.0.0.1:4310/tabs/home",
+    "title": "Aura Booking",
+    "h1": "Welcome back, Garv",
+    "body": "Choose location\nSearch services or salons\nMake time for yourself\n\nFind a service that fits your day.\n\nExplore\nTV\nYOUR PRIMARY SALON\nThakur Village\nSet 10d ago\nBook\nRewards\nWallet\nFROM YOUR VISITS\nBook again\nAS\nAura Salon Indiranagar\nFull Fronts Bleach\nAS\nAura Salon Group\nFull Body Bleach\nMORE TO DO\nQuick actions\nOffers\nWallet\nRewards\nGift Cards\nPackages\nHome\nExplore\nBookings\nMy Salon"
+  },
+  {
+    "name": "06-explore",
+    "route": "/tabs/search",
+    "requestedRoute": "/tabs/search",
+    "url": "http://127.0.0.1:4310/tabs/search",
+    "title": "Aura Booking",
+    "h1": "Explore",
+    "body": "Explore\nChoose location\nSearch salons, services or professionals\nFilter\nSort\nMap\nNear me\nOpen now\nTop rated\nOffers\nRecommended for you\nRecommended salons\nSee all\nAS\nAura Salon Group\n\nFace & Neck Bleach\n\nNew salon\nRoad 36, Hyderabad\n\nBleach\nServices from ₹400\nOpen today · 11 am–9 pm\nAvailable today\nBook\n5 salons open now\nCurrently taking bookings\nFind your treatment\nBrowse categories\nView all\nSkin\nMakeup\nNails\nCLEAN\nCOLOURS\nComplimentary\nWaxing\nD-TANS\nAura Concierge\n\nNot sure what to book? Build a guided salon plan.\n\nStart\nJoined in the last 90 days\nNew & noteworthy\nSee all\nTV\nThakur Village\n\nFace & Neck Bleach\n\nNew salon\n\nBleach\nServices from ₹400\nOpen today · 10 am–8 pm\nAvailable today\nBook\nP1\nPhase 12 Branch\n\nNew salon\nHyderabad\n\nSalon & Wellness\nOpen today · 10 am–8 pm\nAvailable today\nBook\nPopular on salon menus\nServices to discover\nSee all\nBleach\nFace & Neck Bleach\n\nAura Salon Indiranagar\n\nFrom ₹30\nBleach\nFace & Neck Bleach\n\nAura Salon Group\n\nFrom ₹30\nBleach\nFace & Neck Bleach\n\nThakur Village\n\nFrom ₹20\nHome\nExplore\nBookings\nMy Salon"
+  },
+  {
+    "name": "07-consultation",
+    "route": "/tabs/consultation",
+    "requestedRoute": "/tabs/consultation",
+    "url": "http://127.0.0.1:4310/tabs/consultation",
+    "title": "Aura Booking",
+    "h1": "Aura Concierge",
+    "body": "Aura Concierge\nCurrent location\n5 salons\nHair transformation\nSkin or facial\nNails\nSpa wellness\nBarber grooming\nBridal/event\nBudget plan\nNear me\nAURA CONCIERGE\nTell me your goal, budget, timing, area and any sensitivity history. Add photos if visual review helps.\nMessage Aura\nAdd budget, timing & sensitivitiesOptional\nAsk Aura\nPhotos\nNearby context\n5 salons near Current location\nDiscover salons"
+  },
+  {
+    "name": "08-offers",
+    "route": "/tabs/offers",
+    "requestedRoute": "/tabs/offers",
+    "url": "http://127.0.0.1:4310/tabs/offers",
+    "title": "Aura Booking",
+    "h1": "Current marketplace promotions",
+    "body": "Offers\nLIVE OFFERS\nCurrent marketplace promotions\nFind offers\nSave on your next appointment\nAS\nAura Salon Indiranagar\n\nFace & Neck Bleach\n\nNew salon\n12th Main, Bengaluru\n\nBleach\nServices from ₹400\nOpen today · 10 am–8 pm\nAvailable today\nBook\nAS\nAura Salon Group\n\nFace & Neck Bleach\n\nNew salon\nRoad 36, Hyderabad\n\nBleach\nServices from ₹400\nOpen today · 11 am–9 pm\nAvailable today\nBook\nP1\nPhase 12 Branch\n\nNew salon\nHyderabad\n\nSalon & Wellness\nOpen today · 10 am–8 pm\nAvailable today\nBook\nP1\nPhase 12 Branch\n\nNew salon\nHyderabad\n\nSalon & Wellness\nOpen today · 10 am–8 pm\nAvailable today\nBook\nTV\nThakur Village\n\nFace & Neck Bleach\n\nNew salon\n\nBleach\nServices from ₹400\nOpen today · 10 am–8 pm\nAvailable today\nBook"
+  },
+  {
+    "name": "09-profile",
+    "route": "/tabs/profile",
+    "requestedRoute": "/tabs/profile",
+    "url": "http://127.0.0.1:4310/tabs/profile",
+    "title": "Aura Booking",
+    "h1": "",
+    "body": "PROFILE\nAccount settings\nPersonal info, notifications, password\nACTIVITY\nMy bookings\nMy Salons\nFavourites\nPAYMENTS AND BENEFITS\nWallet and payments\nLoyalty rewards\nMemberships\nPackages\nACCOUNT\nFamily profiles\nNotifications\nGift cards\nReferrals\nPrivacy and settings\nPERSONALIZATION\nBeauty goals\nSUPPORT\nHelp centre\nContact support\nLogout\nHome\nExplore\nBookings\nMy Salon"
+  },
+  {
+    "name": "10-bookings",
+    "route": "/tabs/bookings",
+    "requestedRoute": "/tabs/bookings",
+    "url": "http://127.0.0.1:4310/tabs/bookings",
+    "title": "Aura Booking",
+    "h1": "My bookings",
+    "body": "My bookings\nSupport\nUpcoming\nPast\nCancelled\nNo upcoming bookings\nFind a place\nHome\nExplore\nBookings\nMy Salon"
+  },
+  {
+    "name": "11-wishlist",
+    "route": "/tabs/wishlist",
+    "requestedRoute": "/tabs/wishlist",
+    "url": "http://127.0.0.1:4310/tabs/wishlist",
+    "title": "Aura Booking",
+    "h1": "Favourites",
+    "body": "Favourites\n\n3 salons saved\n\nDiscover\nAS\nAura Salon Group\nBLEACH\nRoad 36, Hyderabad\n4.5 (1)\n\nFace & Neck Bleach\nFrom ₹30\n\nBook now\nAS\nAura Salon Indiranagar\nBLEACH\n12th Main, Bengaluru\n\nFace & Neck Bleach\nFrom ₹30\n\nBook now\nP1\nPhase 12 Branch\nSalon & wellness\nHyderabad\n\nService details unavailable\n\nBook now"
+  },
+  {
+    "name": "12-saved-salons",
+    "route": "/tabs/saved-salons",
+    "requestedRoute": "/tabs/saved-salons",
+    "url": "http://127.0.0.1:4310/tabs/saved-salons",
+    "title": "Aura Booking",
+    "h1": "Saved salons",
+    "body": "Saved salons\n\n2 salons shortlisted for later\n\nDiscover\nAS\nAura Salon Indiranagar\nBLEACH\n12th Main, Bengaluru\n\nFace & Neck Bleach\nFrom ₹30\n\nBook now\nView salon\nAS\nAura Salon Group\nBLEACH\nRoad 36, Hyderabad\n4.5 (1)\n\nFace & Neck Bleach\nFrom ₹30\n\nBook now\nView salon"
+  },
+  {
+    "name": "13-notifications",
+    "route": "/notifications",
+    "requestedRoute": "/notifications",
+    "url": "http://127.0.0.1:4310/notifications",
+    "title": "Aura Booking",
+    "h1": "Notifications",
+    "body": "AURA INBOX\n\nNotifications\n\n16 unread — booking updates, payments, offers and account activity.\n\nYOUR UPDATES\n\n16 unread notifications\n16\nBooking request received\nWe received your booking request for 14 Aug, 3:00 pm.\n14 Aug, 2:08 am\nMark read\nBooking request received\nWe received your booking request for 14 Aug, 4:30 pm.\n14 Aug, 2:08 am\nMark read\nBooking request received\nWe received your booking request for 14 Aug, 11:30 am.\n14 Aug, 2:02 am\nMark read\nBooking request received\nWe received your booking request for 14 Aug, 12:00 pm.\n14 Aug, 2:02 am\nMark read\nBooking request received\nWe received your booking request for 14 Aug, 1:00 pm.\n14 Aug, 2:02 am\nMark read\nBooking request received\nWe received your booking request for 14 Aug, 11:30 am.\n14 Aug, 1:57 am\nMark read\nBooking request received\nWe received your booking request for 12 Aug, 7:30 pm.\n12 Aug, 4:35 pm\nMark read\nAppointment in 2 hours\nYour AuraSalon appointment is in 2 hours, 11 Aug, 5:30 pm.\n11 Aug, 3:30 pm\nMark read\nAppointment tomorrow\nYour AuraSalon appointment is tomorrow, 11 Aug, 5:30 pm.\n10 Aug, 5:30 pm\nMark read\nBooking request received\nWe received your booking request for 4 Aug, 12:30 pm.\n03 Aug, 6:03 pm\nMark read\nBooking request received\nWe received your booking request for 6 Aug, 11:00 am.\n03 Aug, 6:03 pm\nMark read\nBooking request received\nWe received your booking request for 3 Aug, 7:00 pm.\n03 Aug, 6:03 pm\nMark read\nBooking request received\nWe received your booking request for 4 Aug, 2:30 pm.\n01 Aug, 5:33 pm\nMark read\nBooking request received\nWe received your booking request for 4 Aug, 11:30 am.\n01 Aug, 5:33 pm\nMark read\nBooking request received\nWe received your booking request for 6 Aug, 1:30 pm.\n01 Aug, 5:31 pm\nMark read\nBooking request received\nWe received your booking request for 6 Aug, 10:30 am.\n01 Aug, 5:31 pm\nMark read\n\nSTAY UPDATED\n\nAbout notifications\n01\n\nBooking updates\nAppointment confirmations, reminders, cancellations and reschedules.\n\n02\n\nPayments & wallet\nInvoice payments, refunds, wallet credits and gift card activity.\n\n03\n\nOffers & promotions\nPersonalised deals, loyalty rewards and membership benefits.\n\nNotification preferences can be managed from your profile settings.\n\nManage preferences"
+  },
+  {
+    "name": "14-settings",
+    "route": "/settings",
+    "requestedRoute": "/settings",
+    "url": "http://127.0.0.1:4310/settings",
+    "title": "Aura Booking",
+    "h1": "Preferences",
+    "body": "ACCOUNT CONTROLS\n\nPreferences\n\nManage alerts, login security, and devices connected to your Aura account.\n\nG\nGarv Kataria\ngarvkataria@demo.aura\n+919999999999\nSigned in with demo\n\nNOTIFICATIONS\n\nChoose what reaches you\nBooking reminders\nPush reminders before appointments\nMarketing offers\nPersonalized beauty and wellness deals\nLoyalty alerts\nRewards, points, and membership updates\nMembership alerts\nRenewal, expiry, and benefit updates\n\nAPPEARANCE\n\nChoose your look\nSystem\nLight\nDark\n\nSystem follows your device setting. Light and Dark override it for this app only.\n\nDEVICE SECURITY\n\nProtect your access\nRefresh\nBiometric Login\nOptional Face ID, Touch ID, or fingerprint check when opening this device.\nActive Devices\nManage browsers and phones where your Aura account is signed in.\n\nNo active devices found yet.\n\nLogout all devices"
+  },
+  {
+    "name": "15-help",
+    "route": "/help",
+    "requestedRoute": "/help",
+    "url": "http://127.0.0.1:4310/help",
+    "title": "Aura Booking",
+    "h1": "What can we help with?",
+    "body": "Help & Support\n\nCUSTOMER CARE\n\nWhat can we help with?\n\nSearch quick answers or choose a topic below.\n\nSearch help topics\nUPCOMING BOOKING\nFace & Neck Bleach\n\nAura Salon Indiranagar · Tue, 28 Jul, 11:30 am\n\nView\nPopular topics\nBookings\nManage appointments\nPayments\nPay and view invoices\nRefunds\nPolicies and timing\nAccount & safety\nProfile and security\nRewards goals\nTrack and reach loyalty goals\nBookings questions\nHow do I view a booking?\n\nOpen Bookings, choose the appointment, and review the service, staff, time, payment status, cancellation policy, and support actions.\n\nView my bookings\nCan I join a waitlist?\nHow do I reschedule?\nStill need help?\nReach our support team for anything not covered above.\nContact support\nReport a security issue"
+  },
+  {
+    "name": "16-rewards",
+    "route": "/tabs/rewards",
+    "requestedRoute": "/tabs/rewards",
+    "url": "http://127.0.0.1:4310/tabs/rewards",
+    "title": "Aura Booking",
+    "h1": "Rewards",
+    "body": "AURA REWARDS\n\nRewards\n\nPoints, tier and booking rewards from your activity.\n\nBook now\n\nLoyalty points\n\n0\nBook & earn\n\nHISTORY\n\nReward activity\nYou haven’t earned rewards yet\n\nPoints are earned from completed bookings and referrals. Book a service to start earning.\n\nBook a service\n\nHOW IT WORKS\n\nAbout rewards\n01\n\nEarn points\nEvery completed booking earns loyalty points. Higher tiers earn more per visit.\n\n02\n\nTiers & benefits\nProgress through Bronze, Silver and Gold tiers to unlock exclusive perks and discounts.\n\n03\n\nReferral rewards\nInvite friends to earn bonus points when they complete their first booking.\n\n04\n\nPoints expiry\nPoints are valid for 12 months from the date they are earned.\n\nHelp with rewards"
+  },
+  {
+    "name": "17-wallet",
+    "route": "/tabs/wallet",
+    "requestedRoute": "/tabs/wallet",
+    "url": "http://127.0.0.1:4310/tabs/wallet",
+    "title": "Aura Booking",
+    "h1": "Wallet",
+    "body": "AURA WALLET\n\nWallet\n\nYour credits, refunds and wallet activity in one place.\n\nView invoices\nNo credits yet\n\nCredits, eligible refunds and wallet payments will appear here automatically.\n\nExplore services\n\nACTIVITY\n\nTransaction history\nNo wallet activity yet\n\nCredits, eligible refunds and wallet payments will appear here automatically.\n\nExplore salons\n\nHOW IT WORKS\n\nKnow your wallet\n01\n\nCredits\nEligible credits are added to your available balance.\n\n02\n\nRefunds\nWallet refunds appear in history after they are processed.\n\n03\n\nPayments\nWallet use depends on the salon, service and invoice.\n\nPayment and wallet help"
+  },
+  {
+    "name": "18-memberships",
+    "route": "/tabs/memberships",
+    "requestedRoute": "/tabs/memberships",
+    "url": "http://127.0.0.1:4310/tabs/memberships",
+    "title": "Aura Booking",
+    "h1": "Memberships",
+    "body": "AURA MEMBERSHIPS\n\nMemberships\n\nActive plans, benefits and available memberships.\n\nBook now\n\nYOUR PLANS\n\nMemberships\nNo memberships yet\n\nPurchase a membership plan to unlock exclusive benefits, discounts and credits.\n\nBrowse plans\n\nPLANS & BENEFITS\n\nAvailable plans\nExplore membership plans\n01\n\nChoose a plan\nBrowse membership options with credits, discounts and exclusive perks.\n\n02\n\nCredits & usage\nEach membership includes plan credits you can redeem against services.\n\n03\n\nAuto-renew\nMemberships can be set to auto-renew so you never lose your benefits.\n\nMembership\nOngoing benefits for a fixed period — discounts, credits and perks.\nPackage\nPrepaid service sessions you redeem as you book.\nHelp with memberships"
+  },
+  {
+    "name": "19-packages",
+    "route": "/tabs/packages",
+    "requestedRoute": "/tabs/packages",
+    "url": "http://127.0.0.1:4310/tabs/packages",
+    "title": "Aura Booking",
+    "h1": "Packages",
+    "body": "AURA PACKAGES\n\nPackages\n\nSessions, balances and package redemptions.\n\nBook now\n\nActive packages\n\n1\nBrowse packages\nHelp\n\nYOUR PACKAGES\n\nPackages\n1 active\nGlow Reset Package\nactive\nBought 22 Jun 2026, 4:00 pm\n₹15,000\n0 credits left\n\nHOW IT WORKS\n\nAbout packages\n01\n\nChoose a package\nSelect from available service bundles with prepaid credits at discounted rates.\n\n02\n\nRedeem credits\nCredits are automatically applied when you book a service covered by the package.\n\n03\n\nTrack balance\nYour remaining credits and package status are always visible in this section.\n\nPackage\nPrepaid service sessions you redeem as you book.\nMembership\nOngoing benefits for a fixed period — discounts, credits and perks.\nHelp with packages"
+  },
+  {
+    "name": "20-gift-cards",
+    "route": "/tabs/gift-cards",
+    "requestedRoute": "/tabs/gift-cards",
+    "url": "http://127.0.0.1:4310/tabs/gift-cards",
+    "title": "Aura Booking",
+    "h1": "Gift cards",
+    "body": "GIFT CARDS\n\nGift cards\n\nPurchase, redeem and track your gift card balances.\n\nBuy a gift card\n\nYOUR CARDS\n\nGift cards\nNo gift cards yet\n\nGift cards can be purchased for yourself or as a gift for someone else.\n\nBuy a gift card\n\nABOUT GIFT CARDS\n\nHow gift cards work\n01\n\nPurchase\nBuy a gift card for any amount starting from ’100. Instant digital delivery.\n\n02\n\nRedeem\nUse the gift card code at checkout when booking services or buying products.\n\n03\n\nTrack balance\nYour remaining balance and transaction history are always visible here.\n\nHelp with gift cards"
+  },
+  {
+    "name": "21-payments",
+    "route": "/tabs/payments",
+    "requestedRoute": "/tabs/payments",
+    "url": "http://127.0.0.1:4310/tabs/payments",
+    "title": "Aura Booking",
+    "h1": "Payments",
+    "body": "AURA PAYMENTS\n\nPayments\n\nEvery payment across your bookings and invoices, in one secure place.\n\nView invoices\n0 payments on record\nAccount protected\n\nTotal paid\n\n₹0\nView invoices\nExplore services\n\nHISTORY\n\nPayment activity\nNo payments yet\n\nYour booking and invoice payments will appear here automatically after each settlement.\n\nBook a service\n\nPAYMENT GUIDE\n\nKnow your payments\n01\n\nPayment methods\nUPI, card, wallet and cash are accepted wherever the salon enables them.\n\n02\n\nPayment links\nInvoice balances can be settled anytime from a secure payment link.\n\n03\n\nRefunds\nEligible refunds move back to your wallet and appear in history here.\n\nPayment and wallet help"
+  },
+  {
+    "name": "22-invoices",
+    "route": "/tabs/invoices",
+    "requestedRoute": "/tabs/invoices",
+    "url": "http://127.0.0.1:4310/tabs/invoices",
+    "title": "Aura Booking",
+    "h1": "Invoices",
+    "body": "AURA INVOICES\n\nInvoices\n\nTrack due payments, past invoices and your payment history.\n\nView wallet\n0 invoices on record\nAccount protected\n\nTotal outstanding\n\n₹0\nView wallet\nExplore services\n\nHISTORY\n\nInvoices\nNo invoices yet\n\nYour booking invoices will appear here automatically after each completed visit.\n\nBook a service\n\nPAYMENT GUIDE\n\nKnow your invoices\n01\n\nInvoice generation\nInvoices are created after a completed booking with a billable service.\n\n02\n\nPayment options\nUse wallet, UPI, or invoice payment link to settle balances.\n\n03\n\nDue invoices\nPayments can be split across multiple visits and invoices.\n\nInvoice and payment help"
+  },
+  {
+    "name": "23-gallery",
+    "route": "/tabs/gallery",
+    "requestedRoute": "/tabs/gallery",
+    "url": "http://127.0.0.1:4310/tabs/gallery",
+    "title": "Aura Booking",
+    "h1": "Saved inspiration",
+    "body": "GALLERY\n\nSaved inspiration\nDiscover salons\nBack to home\nAura Rewards\nPoints, tier and booking rewards.\nAura Wallet\nCredits, refunds and invoice payments.\nMemberships\nActive plans and benefit usage.\nPackages\nSessions, balances and redemptions.\nGift cards\nPurchase, redeem and track balances.\nSupport\nTickets, chat and booking help.\nReferrals\nInvite friends and track rewards.\nGallery\nSaved looks and before/after photos.\nFamily\nProfiles for shared bookings.\nBeauty goals\nPlans, routines and treatment goals.\nPayments\nUPI, card and invoice payment records.\nInvoices\nBills, balances and payment status.\nNotifications\nBooking and account updates.\nCUSTOMER\nGarv Kataria\nBOOKINGS\n21\nLOYALTY\n0 pts\nSAVED\nDEMO\nBridal hair inspiration\n\nReference look saved for your next stylist consultation.\n\n3 photos\nOpen section\nBEFORE/AFTER\nDEMO\nSkin glow transformation\n\nTreatment progress photos attached to your profile.\n\n2 photos\nOpen section\nFAVORITE\nDEMO\nNail art moodboard\n\nSaved inspiration for an upcoming nail booking.\n\n5 ideas\nOpen section\nDemo records ready for testing\n\nThe live API returned no records for this section, so local demo records are shown only for UI testing. Real customer records replace these automatically."
+  },
+  {
+    "name": "24-support",
+    "route": "/tabs/support",
+    "requestedRoute": "/tabs/support",
+    "url": "http://127.0.0.1:4310/tabs/support",
+    "title": "Aura Booking",
+    "h1": "Help & support",
+    "body": "AURA SUPPORT\n\nHelp & support\n\nYour support tickets and help resources.\n\nHelp centre\n\nYOUR REQUESTS\n\nSupport tickets\nNo support tickets yet\n\nWhen you raise a request from a booking, your ticket appears here with its status and expected reply time.\n\nStart a support request\nView my bookings\n\nHOW IT WORKS\n\nGetting help\n01\n\nFrom a booking\nOpen any booking and choose the support option to send a request linked to that appointment.\n\n02\n\nTrack your ticket\nEvery request creates a ticket you can follow here. Check status and updates in real time.\n\n03\n\nHelp centre\nBrowse FAQs and guides for common topics like payments, cancellations and account management.\n\nVisit help centre\nView my bookings"
+  },
+  {
+    "name": "25-root-search",
+    "route": "/search",
+    "requestedRoute": "/search",
+    "url": "http://127.0.0.1:4310/search",
+    "title": "Aura Booking",
+    "h1": "Search salons",
+    "body": "Search salons\nChoose location\nUse current location or pick an area manually\nFilter\nSort\nMap\nNear me\nOpen now\nTop rated\nOffers\nRecommended salons\n5 places found · Sorted by Best match\nMap view\nAS\nAura Salon Indiranagar\n\nFace & Neck Bleach\n\nNew salon\n12th Main, Bengaluru\n\nBleach\nServices from ₹400\nOpen today · 10 am–8 pm\nAvailable today\nBook\nAS\nAura Salon Group\n\nFace & Neck Bleach\n\nNew salon\nRoad 36, Hyderabad\n\nBleach\nServices from ₹400\nOpen today · 11 am–9 pm\nAvailable today\nBook\nP1\nPhase 12 Branch\n\nNew salon\nHyderabad\n\nSalon & Wellness\nOpen today · 10 am–8 pm\nAvailable today\nBook\nP1\nPhase 12 Branch\n\nNew salon\nHyderabad\n\nSalon & Wellness\nOpen today · 10 am–8 pm\nAvailable today\nBook\nTV\nThakur Village\n\nFace & Neck Bleach\n\nNew salon\n\nBleach\nServices from ₹400\nOpen today · 10 am–8 pm\nAvailable today\nBook"
+  },
+  {
+    "name": "26-booking-summary",
+    "route": "/booking/summary",
+    "requestedRoute": "/booking/summary",
+    "url": "http://127.0.0.1:4310/booking/summary",
+    "title": "Aura Booking",
+    "h1": "Review your appointment",
+    "body": "Review your appointment\nNo booking loaded\nDiscover salons"
+  },
+  {
+    "name": "27-booking-success",
+    "route": "/booking/success",
+    "requestedRoute": "/booking/success",
+    "url": "http://127.0.0.1:4310/booking/success",
+    "title": "Aura Booking",
+    "h1": "No booking loaded",
+    "body": "No booking loaded\nView bookings"
+  }
+]

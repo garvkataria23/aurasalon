@@ -4,8 +4,8 @@
   "description": "Book premium salons, spas, and wellness appointments.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#101828",
+  "background_color": "#F7F4FD",
+  "theme_color": "#7C63DF",
   "orientation": "portrait-primary",
   "icons": [
     {

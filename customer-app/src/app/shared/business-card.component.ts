@@ -166,8 +166,8 @@ import { MarketplaceService } from "../core/marketplace.service";
     }
 
     .business-card.variant-discovery {
-      border-color: rgba(124, 99, 223, 0.2);
-      box-shadow: 0 12px 28px rgba(28, 28, 28, 0.085);
+      border-color: rgba(124, 99, 223, 0.18);
+      box-shadow: 0 10px 24px rgba(28, 28, 28, 0.075);
     }
 
     .cover-fallback {
@@ -303,7 +303,7 @@ import { MarketplaceService } from "../core/marketplace.service";
       min-width: 0;
       color: var(--text);
       font-size: 0.86rem;
-      font-weight: 850;
+      font-weight: 800;
       line-height: 1.25;
     }
 
@@ -319,7 +319,7 @@ import { MarketplaceService } from "../core/marketplace.service";
       margin: 0;
       color: var(--text);
       font-size: 1.08rem;
-      font-weight: 950;
+      font-weight: 900;
       letter-spacing: -0.035em;
       line-height: 1.1;
     }
@@ -328,7 +328,7 @@ import { MarketplaceService } from "../core/marketplace.service";
       margin: 0;
       color: var(--text);
       font-size: 0.88rem;
-      font-weight: 900;
+      font-weight: 850;
       line-height: 1.25;
     }
 
@@ -429,7 +429,7 @@ import { MarketplaceService } from "../core/marketplace.service";
       flex: 0 0 auto;
       color: var(--primary-2);
       font-size: 0.88rem;
-      font-weight: 950;
+      font-weight: 900;
     }
 
     .footer-row {
@@ -444,6 +444,10 @@ import { MarketplaceService } from "../core/marketplace.service";
       --padding-end: 10px;
       font-size: 0.84rem;
       white-space: nowrap;
+    }
+
+    .footer-row ion-button::part(native) {
+      text-transform: none;
     }
 
     @media (hover: hover) and (pointer: fine) {
@@ -856,7 +860,7 @@ import { MarketplaceService } from "../core/marketplace.service";
         width: 100%;
         min-width: 0;
         border-radius: 18px;
-        box-shadow: 0 8px 22px rgba(28, 28, 28, 0.08);
+        box-shadow: 0 8px 20px rgba(28, 28, 28, 0.065);
       }
 
       .business-card.variant-discovery .cover {
@@ -864,8 +868,8 @@ import { MarketplaceService } from "../core/marketplace.service";
       }
 
       .business-card.variant-discovery .content {
-        gap: 5px;
-        padding: 10px 12px 12px;
+        gap: 4px;
+        padding: 10px 12px;
       }
 
       .business-card.variant-discovery .booking-status {
@@ -875,12 +879,12 @@ import { MarketplaceService } from "../core/marketplace.service";
       .business-card.variant-discovery h3 {
         min-height: 0;
         margin-top: 0;
-        font-size: 1.02rem;
+        font-size: 0.98rem;
         line-height: 1.12;
       }
 
       .business-card.variant-discovery .business-meta {
-        font-size: 0.82rem;
+        font-size: 0.8rem;
       }
 
       .business-card.variant-discovery .service-row {

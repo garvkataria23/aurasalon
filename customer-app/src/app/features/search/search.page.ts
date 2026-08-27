@@ -88,6 +88,7 @@ interface QuickFilterChip {
   template: `
     <ion-content>
       <main class="page search-page" [class.keyboard-open]="keyboardOpen()">
+        <h1 class="visually-hidden">Search salons</h1>
         <section class="premium-discovery-top" aria-label="Salon discovery">
           <section class="search-command-bar">
             <div class="search-command-row">
@@ -3168,7 +3169,7 @@ export class SearchPage implements AfterViewInit, OnDestroy, OnInit {
       }
     });
     if (this.minPrice() || this.maxPrice()) {
-      chips.push({ key: "priceRange", label: `₹ ${this.minPrice() || "0"} - ${this.maxPrice() || "Any"}` });
+      chips.push({ key: "priceRange", label: `₹${this.minPrice() || "0"} - ${this.maxPrice() || "Any"}` });
     }
     if (this.selectedCountry() || this.selectedState() || this.selectedCity()) {
       chips.push({ key: "location", label: this.getLocationLabel() });
@@ -3336,7 +3337,7 @@ export class SearchPage implements AfterViewInit, OnDestroy, OnInit {
     const labels = this.activeFilters()
       .map((key) => key === "nearest" ? this.locationDisplayLabel() : this.flatFilterOptions().find((option) => option.key === key)?.label)
       .filter(Boolean) as string[];
-    if (this.minPrice() || this.maxPrice()) labels.push(`Rs ${this.minPrice() || "0"} - ${this.maxPrice() || "Any"}`);
+    if (this.minPrice() || this.maxPrice()) labels.push(`₹${this.minPrice() || "0"} - ${this.maxPrice() || "Any"}`);
     return labels;
   });
 

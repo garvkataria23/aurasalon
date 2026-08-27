@@ -1,0 +1,304 @@
+{
+  "steps": [
+    {
+      "name": "demo-login",
+      "demoClicked": true,
+      "afterDemoUrl": "/tabs/home",
+      "tokenPresent": true,
+      "body": "Choose location\nSearch services or salons\nMake time for yourself\n\nFind a service that fits your day.\n\nExplore\nTV\nYOUR PRIMARY SALON\nThakur Village\nSet 10d ago\nBook\nRewards\nWallet\nFROM YOUR VISITS\nBook again\nAS\nAura Salon Indiranagar\nFull Fronts Bleach\nAS\nAura Salon Group\nFull Body Bleach\nMORE TO DO\nQuick actions\nOffers\nWallet\nRewards\nGift Cards\nPackages\nHome\nExplore\nBookings\nMy Salon"
+    }
+  ],
+  "routes": {
+    "home": {
+      "url": "/tabs/home",
+      "hasContent": true,
+      "phase12Count": 0,
+      "text": "Choose location\nSearch services or salons\nMake time for yourself\n\nFind a service that fits your day.\n\nExplore\nTV\nYOUR PRIMARY SALON\nThakur Village\nSet 10d ago\nBook\nRewards\nWallet\nFROM YOUR VISITS\nBook again\nAS\nAura Salon Indiranagar\nFull Fronts Bleach\nAS\nAura Salon Group\nFull Body Bleach\nMORE TO DO\nQuick actions\nOffers\nWallet\nRewards\nGift Cards\nPac"
+    },
+    "explore": {
+      "url": "/tabs/search",
+      "hasContent": true,
+      "phase12Count": 1,
+      "text": "Explore\nChoose location\nSearch salons, services or professionals\nFilter\nSort\nMap\nNear me\nOpen now\nTop rated\nOffers\nRecommended for you\nRecommended salons\nSee all\nAS\nAura Salon Group\n\nFace & Neck Bleach\n\nNew salon\nRoad 36, Hyderabad\n\nBleach\nServices from ₹400\nOpen today · 11 am–9 pm\nAvailable today\nBook\n5 salons open now\nCurrently taking bookings\nFi"
+    },
+    "root-search": {
+      "url": "/search",
+      "hasContent": true,
+      "phase12Count": 2,
+      "text": "Search salons\nChoose location\nUse current location or pick an area manually\nFilter\nSort\nMap\nNear me\nOpen now\nTop rated\nOffers\nRecommended salons\n5 places found · Sorted by Best match\nMap view\nAS\nAura Salon Indiranagar\n\nFace & Neck Bleach\n\nNew salon\n12th Main, Bengaluru\n\nBleach\nServices from ₹400\nOpen today · 10 am–8 pm\nAvailable today\nBook\nAS\nAura "
+    },
+    "consultation": {
+      "url": "/tabs/consultation",
+      "hasContent": true,
+      "phase12Count": 0,
+      "text": "Aura Concierge\nCurrent location\n5 salons\nHair transformation\nSkin or facial\nNails\nSpa wellness\nBarber grooming\nBridal/event\nBudget plan\nNear me\nAURA CONCIERGE\nTell me your goal, budget, timing, area and any sensitivity history. Add photos if visual review helps.\nMessage Aura\nAdd budget, timing & sensitivitiesOptional\nASK AURA\nPhotos\nNearby context\n"
+    },
+    "offers": {
+      "url": "/tabs/offers",
+      "hasContent": true,
+      "phase12Count": 2,
+      "text": "Offers\nLIVE OFFERS\nCurrent marketplace promotions\nFIND OFFERS\nSave on your next appointment\nAS\nAura Salon Indiranagar\n\nFace & Neck Bleach\n\nNew salon\n12th Main, Bengaluru\n\nBleach\nServices from ₹400\nOpen today · 10 am–8 pm\nAvailable today\nBook\nAS\nAura Salon Group\n\nFace & Neck Bleach\n\nNew salon\nRoad 36, Hyderabad\n\nBleach\nServices from ₹400\nOpen today "
+    },
+    "bookings": {
+      "url": "/tabs/bookings",
+      "hasContent": true,
+      "phase12Count": 0,
+      "text": "My bookings\nSupport\nUPCOMING\nPAST\nCANCELLED\nNo upcoming bookings\n\nYou have no upcoming appointments. Choose a salon and book a time that fits your day.\n\nFind a place\nNeed help?\nHome\nExplore\nBookings\nMy Salon"
+    },
+    "profile": {
+      "url": "/tabs/profile",
+      "hasContent": true,
+      "phase12Count": 0,
+      "text": "PROFILE\nAccount settings\nPersonal info, notifications, password\nACTIVITY\nMy bookings\nMy Salons\nFavourites\nPAYMENTS AND BENEFITS\nWallet and payments\nLoyalty rewards\nMemberships\nPackages\nACCOUNT\nFamily profiles\nNotifications\nGift cards\nReferrals\nPrivacy and settings\nPERSONALIZATION\nBeauty goals\nSUPPORT\nHelp centre\nContact support\nLOGOUT\nHome\nExplore\n"
+    },
+    "wishlist": {
+      "url": "/tabs/wishlist",
+      "hasContent": true,
+      "phase12Count": 1,
+      "text": "Favourites\n\n3 salons saved\n\nDiscover\nAS\nAura Salon Group\nBLEACH\nRoad 36, Hyderabad\n4.5 (1)\n\nFace & Neck Bleach\nFrom ₹30\n\nBook now\nAS\nAura Salon Indiranagar\nBLEACH\n12th Main, Bengaluru\n\nFace & Neck Bleach\nFrom ₹30\n\nBook now\nP1\nPhase 12 Branch\nSalon & wellness\nHyderabad\n\nService details unavailable\n\nBook now"
+    },
+    "saved": {
+      "url": "/tabs/saved-salons",
+      "hasContent": true,
+      "phase12Count": 0,
+      "text": "Saved salons\n\n2 salons shortlisted for later\n\nDiscover\nAS\nAura Salon Indiranagar\nBLEACH\n12th Main, Bengaluru\n\nFace & Neck Bleach\nFrom ₹30\n\nBook now\nView salon\nAS\nAura Salon Group\nBLEACH\nRoad 36, Hyderabad\n4.5 (1)\n\nFace & Neck Bleach\nFrom ₹30\n\nBook now\nView salon"
+    },
+    "notifications": {
+      "url": "/notifications",
+      "hasContent": true,
+      "phase12Count": 0,
+      "text": "AURA INBOX\n\nNotifications\n\n16 unread — booking updates, payments, offers and account activity.\n\nYOUR UPDATES\n\n16 unread notifications\n16\nBooking request received\nWe received your booking request for 14 Aug, 3:00 pm.\n14 Aug, 2:08 am\nMark read\nBooking request received\nWe received your booking request for 14 Aug, 4:30 pm.\n14 Aug, 2:08 am\nMark read\nBoo"
+    },
+    "settings": {
+      "url": "/settings",
+      "hasContent": true,
+      "phase12Count": 0,
+      "text": "ACCOUNT CONTROLS\n\nPreferences\n\nManage alerts, login security, and devices connected to your Aura account.\n\nG\nGarv Kataria\ngarvkataria@demo.aura\n+919999999999\nSigned in with demo\n\nNOTIFICATIONS\n\nChoose what reaches you\nBooking reminders\nPush reminders before appointments\nMarketing offers\nPersonalized beauty and wellness deals\nLoyalty alerts\nRewards,"
+    },
+    "help": {
+      "url": "/help",
+      "hasContent": true,
+      "phase12Count": 0,
+      "text": "Help & Support\n\nCUSTOMER CARE\n\nWhat can we help with?\n\nSearch quick answers or choose a topic below.\n\nSearch help topics\nUPCOMING BOOKING\nFace & Neck Bleach\n\nAura Salon Indiranagar · Tue, 28 Jul, 11:30 am\n\nView\nPopular topics\nBookings\nManage appointments\nPayments\nPay and view invoices\nRefunds\nPolicies and timing\nAccount & safety\nProfile and securit"
+    },
+    "rewards": {
+      "url": "/tabs/rewards",
+      "hasContent": true,
+      "phase12Count": 0,
+      "text": "AURA REWARDS\n\nRewards\n\nPoints, tier and booking rewards from your activity.\n\nBook now\n\nLoyalty points\n\n0\nBook & earn\n\nHISTORY\n\nReward activity\nYou haven’t earned rewards yet\n\nPoints are earned from completed bookings and referrals. Book a service to start earning.\n\nBook a service\n\nHOW IT WORKS\n\nAbout rewards\n01\n\nEarn points\nEvery completed booking "
+    },
+    "wallet": {
+      "url": "/tabs/wallet",
+      "hasContent": true,
+      "phase12Count": 0,
+      "text": "AURA WALLET\n\nWallet\n\nYour credits, refunds and wallet activity in one place.\n\nView invoices\nNo credits yet\n\nCredits, eligible refunds and wallet payments will appear here automatically.\n\nExplore services\n\nACTIVITY\n\nTransaction history\nNo wallet activity yet\n\nCredits, eligible refunds and wallet payments will appear here automatically.\n\nExplore salo"
+    },
+    "memberships": {
+      "url": "/tabs/memberships",
+      "hasContent": true,
+      "phase12Count": 0,
+      "text": "AURA MEMBERSHIPS\n\nMemberships\n\nActive plans, benefits and available memberships.\n\nBook now\n\nYOUR PLANS\n\nMemberships\nNo memberships yet\n\nPurchase a membership plan to unlock exclusive benefits, discounts and credits.\n\nBrowse plans\n\nPLANS & BENEFITS\n\nAvailable plans\nExplore membership plans\n01\n\nChoose a plan\nBrowse membership options with credits, di"
+    },
+    "packages": {
+      "url": "/tabs/packages",
+      "hasContent": true,
+      "phase12Count": 0,
+      "text": "AURA PACKAGES\n\nPackages\n\nSessions, balances and package redemptions.\n\nBook now\n\nActive packages\n\n1\nBrowse packages\nHelp\n\nYOUR PACKAGES\n\nPackages\n1 active\nGlow Reset Package\nactive\nBought 22 Jun 2026, 4:00 pm\n₹15,000\n0 credits left\n\nHOW IT WORKS\n\nAbout packages\n01\n\nChoose a package\nSelect from available service bundles with prepaid credits at discou"
+    },
+    "gift-cards": {
+      "url": "/tabs/gift-cards",
+      "hasContent": true,
+      "phase12Count": 0,
+      "text": "GIFT CARDS\n\nGift cards\n\nPurchase, redeem and track your gift card balances.\n\nBuy a gift card\n\nYOUR CARDS\n\nGift cards\nNo gift cards yet\n\nGift cards can be purchased for yourself or as a gift for someone else.\n\nBuy a gift card\n\nABOUT GIFT CARDS\n\nHow gift cards work\n01\n\nPurchase\nBuy a gift card for any amount. Starting from ₹100 with instant digital d"
+    },
+    "payments": {
+      "url": "/tabs/payments",
+      "hasContent": true,
+      "phase12Count": 0,
+      "text": "AURA PAYMENTS\n\nPayments\n\nEvery payment across your bookings and invoices, in one secure place.\n\nView invoices\n0 payments on record\nAccount protected\n\nTotal paid\n\n₹0\nView invoices\nExplore services\n\nHISTORY\n\nPayment activity\nNo payments yet\n\nYour booking and invoice payments will appear here automatically after each settlement.\n\nBook a service\n\nPAYME"
+    },
+    "invoices": {
+      "url": "/tabs/invoices",
+      "hasContent": true,
+      "phase12Count": 0,
+      "text": "AURA INVOICES\n\nInvoices\n\nTrack due payments, past invoices and your payment history.\n\nView wallet\n0 invoices on record\nAccount protected\n\nTotal outstanding\n\n₹0\nView wallet\nExplore services\n\nHISTORY\n\nInvoices\nNo invoices yet\n\nYour booking invoices will appear here automatically after each completed visit.\n\nBook a service\n\nPAYMENT GUIDE\n\nKnow your in"
+    },
+    "gallery": {
+      "url": "/tabs/gallery",
+      "hasContent": true,
+      "phase12Count": 0,
+      "text": "GALLERY\n\nSaved inspiration\nDISCOVER SALONS\nBACK TO HOME\nAura Rewards\nPoints, tier and booking rewards.\nAura Wallet\nCredits, refunds and invoice payments.\nMemberships\nActive plans and benefit usage.\nPackages\nSessions, balances and redemptions.\nGift cards\nPurchase, redeem and track balances.\nSupport\nTickets, chat and booking help.\nReferrals\nInvite fr"
+    },
+    "support": {
+      "url": "/tabs/support",
+      "hasContent": true,
+      "phase12Count": 0,
+      "text": "AURA SUPPORT\n\nHelp & support\n\nYour support tickets and help resources.\n\nHelp centre\n\nYOUR REQUESTS\n\nSupport tickets\nNo support tickets yet\n\nWhen you raise a request from a booking, your ticket appears here with its status and expected reply time.\n\nStart a support request\nView my bookings\n\nHOW IT WORKS\n\nGetting help\n01\n\nFrom a booking\nOpen any booki"
+    },
+    "summary": {
+      "url": "/booking/summary",
+      "hasContent": true,
+      "phase12Count": 0,
+      "text": "Review your appointment\nBOOKING RECOVERY\nNo appointment is ready to review\n\nThis summary opens after you choose a salon, service, staff and slot. Start a new booking or return to your saved appointments.\n\nStart a booking\nView my bookings\nExplore salons"
+    },
+    "success": {
+      "url": "/booking/success",
+      "hasContent": true,
+      "phase12Count": 0,
+      "text": "BOOKING RECOVERY\n\nNo confirmed appointment found\n\nThis page shows after a successful booking. If you refreshed or opened it directly, check your bookings or start a new appointment.\n\nView my bookings\nStart a booking\nExplore salons"
+    },
+    "offersFresh": {
+      "phase12Count": 2
+    }
+  },
+  "booking": {
+    "entryClicked": true,
+    "entryUrl": "/business/aura-salon-jubilee-hills-branch-hyd/book",
+    "entryText": "Book appointment\nAura Salon Group · Road 36\nBook your visit\n\nAura Salon Group · Road 36 · New salon\n\n1\nServices\n2\nStaff\n3\nTime\n4\nReview\nChoose a service\nPopular at this salon\nFace & Neck Bleach\nRecommended\n₹450\n20 min\nBleach service · 20 min visit\nAny available professional\nF\nAdd\nFoot Bleach\nRecommended\n₹400\n25 min\nBleach service · 25 min visit\nAny available professional\nF\nAdd\nFull Back Bleach\nRecommended\n₹800\n45 min\nBleach service · 45 min visit\nAny available professional\nF\nAdd\nBLEACH\n4\nFace & Neck Bleach\n₹450\n20 min\nBleach service · 20 min visit\nAny available professional\nF\nAdd\nFoot Bleach\n₹400\n25 min\nBleach service · 25 min visit\nAny available professional\nF\nAdd\nFull Back Bleach\n₹800\n45 min\nBleach service · 45 min visit\nAny available professional\nF\nAdd\nFull Body Bleach\n₹3,500\n60 min\nBle",
+    "attempts": [
+      {
+        "action": "Book now",
+        "ok": false,
+        "url": "/business/aura-salon-jubilee-hills-branch-hyd/book",
+        "text": "Book appointment\nAura Salon Group · Road 36\nBook your visit\n\nAura Salon Group · Road 36 · New salon\n\n1\nServices\n2\nStaff\n3\nTime\n4\nReview\nChoose a service\nPopular at this salon\nFace & Neck Bleach\nRecommended\n₹450\n20 min\nBleach service · 20 min visit\nAny availabl"
+      },
+      {
+        "action": "Book",
+        "ok": true,
+        "url": "/business/aura-salon-jubilee-hills-branch-hyd/book",
+        "text": "Book appointment\nAura Salon Group · Road 36\nBook your visit\n\nAura Salon Group · Road 36 · New salon\n\n1\nServices\n2\nStaff\n3\nTime\n4\nReview\nChoose a service\nTop recommendations for you\nFace & Neck Bleach\nRecommended\n₹450\n20 min\nBleach service · 20 min visit\n14 pro"
+      },
+      {
+        "action": "Continue",
+        "ok": false,
+        "url": "/business/aura-salon-jubilee-hills-branch-hyd/book",
+        "text": "Book appointment\nAura Salon Group · Road 36\nBook your visit\n\nAura Salon Group · Road 36 · New salon\n\n1\nServices\n2\nStaff\n3\nTime\n4\nReview\nChoose a service\nTop recommendations for you\nFace & Neck Bleach\nRecommended\n₹450\n20 min\nBleach service · 20 min visit\n14 pro"
+      },
+      {
+        "action": "Continue",
+        "ok": false,
+        "url": "/business/aura-salon-jubilee-hills-branch-hyd/book",
+        "text": "Book appointment\nAura Salon Group · Road 36\nBook your visit\n\nAura Salon Group · Road 36 · New salon\n\n1\nServices\n2\nStaff\n3\nTime\n4\nReview\nChoose a service\nTop recommendations for you\nFace & Neck Bleach\nRecommended\n₹450\n20 min\nBleach service · 20 min visit\n14 pro"
+      },
+      {
+        "action": "Continue",
+        "ok": false,
+        "url": "/business/aura-salon-jubilee-hills-branch-hyd/book",
+        "text": "Book appointment\nAura Salon Group · Road 36\nBook your visit\n\nAura Salon Group · Road 36 · New salon\n\n1\nServices\n2\nStaff\n3\nTime\n4\nReview\nChoose a service\nTop recommendations for you\nFace & Neck Bleach\nRecommended\n₹450\n20 min\nBleach service · 20 min visit\n14 pro"
+      },
+      {
+        "action": "Continue",
+        "ok": false,
+        "url": "/business/aura-salon-jubilee-hills-branch-hyd/book",
+        "text": "Book appointment\nAura Salon Group · Road 36\nBook your visit\n\nAura Salon Group · Road 36 · New salon\n\n1\nServices\n2\nStaff\n3\nTime\n4\nReview\nChoose a service\nTop recommendations for you\nFace & Neck Bleach\nRecommended\n₹450\n20 min\nBleach service · 20 min visit\n14 pro"
+      },
+      {
+        "action": "Confirm booking",
+        "ok": false,
+        "url": "/business/aura-salon-jubilee-hills-branch-hyd/book",
+        "text": "Book appointment\nAura Salon Group · Road 36\nBook your visit\n\nAura Salon Group · Road 36 · New salon\n\n1\nServices\n2\nStaff\n3\nTime\n4\nReview\nChoose a service\nTop recommendations for you\nFace & Neck Bleach\nRecommended\n₹450\n20 min\nBleach service · 20 min visit\n14 pro"
+      }
+    ],
+    "finalUrl": "/business/aura-salon-jubilee-hills-branch-hyd/book",
+    "finalText": "Book appointment\nAura Salon Group · Road 36\nBook your visit\n\nAura Salon Group · Road 36 · New salon\n\n1\nServices\n2\nStaff\n3\nTime\n4\nReview\nChoose a service\nTop recommendations for you\nFace & Neck Bleach\nRecommended\n₹450\n20 min\nBleach service · 20 min visit\n14 professionals available\nF\nAdd\nFoot Bleach\nRecommended\n₹400\n25 min\nBleach service · 25 min visit\n14 professionals available\nF\nAdd\nFull Body Bleach\nRecommended\n₹3,500\n60 min\nBleach service · 60 min visit\n14 professionals available\nF\nAdd\nBLEACH\n16\nFace & Neck Bleach\n₹450\n20 min\nBleach service · 20 min visit\n14 professionals available\nF\nAdd\nFoot Bleach\n₹400\n25 min\nBleach service · 25 min visit\n14 professionals available\nF\nAdd\nFull Back Bleach\n₹800\n45 min\nBleach service · 45 min visit\n14 professionals available\nF\nAdd\nFull Body Bleach\n₹3,500\n60 min\nBleach service · 60 min visit\n14 professionals available\nF\nAdd\nFull Fronts Bleach\n₹800\n40 min\nBleach service · 40 min visit\n14 professionals available\nF\nAdd\nFull Hand Bleach\n₹800\n30 min\nBleach service · 30 min visit\n14 professionals available\nF\nAdd\nFull Legs Bleach\n₹800\n40 min\nBleach service · 40 min visit\n14 professionals available\nF\nAdd\nHalf Back Bleach\nExtended visit\n₹450\n300 min\nBleach s",
+    "bookingsText": "My bookings\nSupport\nUPCOMING\nPAST\nCANCELLED\nNo upcoming bookings\n\nYou have no upcoming appointments. Choose a salon and book a time that fits your day.\n\nFind a place\nNeed help?\nHome\nExplore\nBookings\nMy Salon"
+  },
+  "routeBack": {},
+  "search": {
+    "afterFastTypingUrl": "/search",
+    "containsHair": false,
+    "phase12CountAfterClear": 2,
+    "bodyAfterClear": "Search salons\nChoose location\nUse current location or pick an area manually\nFilter\nSort\nMap\nNear me\nOpen now\nTop rated\nOffers\nRecommended salons\n5 places found · Sorted by Best match\nMap view\nAS\nAura Salon Indiranagar\n\nFace & Neck Bleach\n\nNew salon\n12th Main, Bengaluru\n\nBleach\nServices from ₹400\nOpen today · 10 am–8 pm\nAvailable today\nBook\nAS\nAura Salon Group\n\nFace & Neck Bleach\n\nNew salon\nRoad 36"
+  },
+  "notifications": {
+    "clickedNotif": true,
+    "before": "AURA INBOX\n\nNotifications\n\n16 unread — booking updates, payments, offers and account activity.\n\nYOUR UPDATES\n\n16 unread notifications\n16\nBooking request received\nWe received your booking request for 14 Aug, 3:00 pm.\n14 Aug, 2:08 am\nMark read\nBooking request received\nWe received your booking request for 14 Aug, 4:30 pm.\n14 Aug, 2:08 am\nMark read\nBooking request received\nWe received your booking request for 14 Aug, 11:30 am.\n14 Aug, 2:02 am\nMark read\nBooking request received\nWe received your booki",
+    "afterUrl": "/bookings/appt_f8d74117-c",
+    "after": "Booking details\nAura Salon Indiranagar\nThis visit is complete.\nCompleted\nFull Body Bleach\n\nAura Salon Indiranagar\n\nAPPOINTMENT TIME\nFri, 14 Aug · 3:00 PM–4:00 PM\nDuration\n1h\nProfessional\nKaran Mehta\nVenue\n12th Main, Indiranagar\nPayment\nPayment due at salon\nBooking reference\nBooking #APPT-F8D74117-C\nCopy\nAdd to calendar\nShare booking\nBook again\n\nLoved your visit? Book the same service or something new.\n\nBook again\nLeave review\nHELP & SALON\nView salon\nGeneral Help Centre\nCancellation policy\nCancel"
+  },
+  "auth": {
+    "demoClicked": true,
+    "afterDemoUrl": "/tabs/home",
+    "tokenPresent": true,
+    "body": "Choose location\nSearch services or salons\nMake time for yourself\n\nFind a service that fits your day.\n\nExplore\nTV\nYOUR PRIMARY SALON\nThakur Village\nSet 10d ago\nBook\nRewards\nWallet\nFROM YOUR VISITS\nBook again\nAS\nAura Salon Indiranagar\nFull Fronts Bleach\nAS\nAura Salon Group\nFull Body Bleach\nMORE TO DO\nQuick actions\nOffers\nWallet\nRewards\nGift Cards\nPackages\nHome\nExplore\nBookings\nMy Salon",
+    "logoutUrl": "/tabs/profile",
+    "logoutIntermediateUrl": "/tabs/profile",
+    "tokenAfterLogout": false,
+    "protectedLoggedOutUrl": "/login?returnUrl=%2Ftabs%2Fbookings",
+    "protectedLoggedOutText": "AURA CUSTOMER APP\n\nBook salon visits without calling.\n\nSearch nearby salons, compare services, save offers, and manage bookings from one clean mobile app.\n\nLive slots\nRewards\nFast OTP\nEmail\nContinue\nOR\nContinue with mobile\nContinue with Facebook\nContinue with Google\nContinue with WhatsApp\nDemo login as garvkataria\nCONTINUE AS GUEST",
+    "returnUrlAfterLogin": "/login?returnUrl=%2Ftabs%2Fbookings"
+  },
+  "salonMode": {
+    "mySalonClicked": true,
+    "url": "/my-salon/tenant_salonist/branch_363bdc6b-2",
+    "text": "TV\nThakur Village\nMy Salon\nTV\nYour Personal Salon Experience\nThakur Village\nOpen Now\nOnline booking available\nExplore Salon & Services\nSalon Relationship & Balances\nYour Account Snapshot\nMembership\nNot Enrolled\nNo active plan\nThakur Village credit\n₹0\nSalon prepaid balance\nClassic\n0 pts\nPoints for discounts\nPackage Credits\nNo Package\nSave on bundled visits\nSchedule & Visits\nUpcoming Appointment\nView All Bookings\nNo upcoming appointments\n\nReady for a fresh haircut, facial, or styling session? Book a time at Thakur Village.\n\nBook New Appointment\nQuick Rebook\nWith Salon Professional\nRebook Service\nHappy Hours & Savings\nExclusive Salon Offers\nAll Offers\nNo active Happy Hours or offers for this salon today.\nCheck Public Coupons\nSalon Menu\nTop Recommended\nFull Menu\n01\nFoot Bleach\nBLEACH · 20 min\n₹400\nBook\n02\nFace & Neck Bleach\nBLEACH · 30 min\n₹450\nBook\n03\nHalf Back Bleach\nBLEACH · 20 min\n₹450\nB",
+    "homeHadPrimarySalon": true
+  },
+  "network": {
+    "failedRequests": [
+      {
+        "url": "22020.2475",
+        "errorText": "net::ERR_INTERNET_DISCONNECTED",
+        "canceled": false
+      }
+    ],
+    "failedCount": 1,
+    "responseErrors": []
+  },
+  "console": {
+    "errors": [
+      {
+        "type": "warning",
+        "text": "[Ionicons Warning]: Could not load icon with name \"shield-checkmark-outline\". Ensure that the icon is registered using addIcons or that the icon SVG data is passed directly to the icon component. ion-icon"
+      },
+      {
+        "type": "warning",
+        "text": "[Ionicons Warning]: Could not load icon with name \"shield-checkmark-outline\". Ensure that the icon is registered using addIcons or that the icon SVG data is passed directly to the icon component. ion-icon.md.hydrated"
+      },
+      {
+        "type": "warning",
+        "text": "[Ionicons Warning]: Could not load icon with name \"shield-checkmark-outline\". Ensure that the icon is registered using addIcons or that the icon SVG data is passed directly to the icon component. ion-icon"
+      },
+      {
+        "type": "warning",
+        "text": "[Ionicons Warning]: Could not load icon with name \"shield-checkmark-outline\". Ensure that the icon is registered using addIcons or that the icon SVG data is passed directly to the icon component. ion-icon.md.hydrated"
+      },
+      {
+        "type": "warning",
+        "text": "[Ionicons Warning]: Could not load icon with name \"chevron-forward-outline\". Ensure that the icon is registered using addIcons or that the icon SVG data is passed directly to the icon component. ion-icon"
+      },
+      {
+        "type": "warning",
+        "text": "[Ionicons Warning]: Could not load icon with name \"chevron-forward-outline\". Ensure that the icon is registered using addIcons or that the icon SVG data is passed directly to the icon component. ion-icon.md.flip-rtl.hydrated"
+      },
+      {
+        "type": "error",
+        "text": "Failed to load resource: net::ERR_INTERNET_DISCONNECTED"
+      },
+      {
+        "type": "error",
+        "text": "ERROR TypeError: Failed to fetch dynamically imported module: http://127.0.0.1:4310/chunk-2HH22BTY.js"
+      }
+    ],
+    "count": 123
+  },
+  "security": {
+    "localStorageSensitiveKeys": [
+      "auraCustomerAccessToken",
+      "auraCustomerRefreshToken"
+    ]
+  },
+  "bookingDetail": {
+    "openedBooking": false,
+    "url": "/tabs/bookings",
+    "text": "My bookings\nSupport\nUPCOMING\nPAST\nCANCELLED\nNo upcoming bookings\n\nYou have no upcoming appointments. Choose a salon and book a time that fits your day.\n\nFind a place\nNeed help?\nHome\nExplore\nBookings\nMy Salon",
+    "hasCancel": true,
+    "hasReschedule": false,
+    "hasBookAgain": false
+  },
+  "offline": {
+    "offlineSearchClicked": true,
+    "url": "/my-salon/tenant_salonist/branch_363bdc6b-2",
+    "text": "TV\nThakur Village\nMy Salon\nTV\nYour Personal Salon Experience\nThakur Village\nOpen Now\nOnline booking available\nExplore Salon & Services\nSalon Relationship & Balances\nYour Account Snapshot\nMembership\nNot Enrolled\nNo active plan\nThakur Village credit\n₹0\nSalon prepaid balance\nClassic\n0 pts\nPoints for discounts\nPackage Credits\nNo Package\nSave on bundled visits\nSchedule & Visits\nUpcoming Appointment\nView All Bookings\nNo upcoming appointments\n\nReady for a fresh haircut, facial, or styling session? Book"
+  }
+}
