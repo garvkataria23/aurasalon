@@ -138,12 +138,12 @@ type BookingFlowItem = {
                             type="button"
                             class="salon-service-add"
                             [class.selected]="isServiceSelected(service.id)"
-                            [attr.aria-label]="isServiceSelected(service.id) ? 'View added service' : 'View service details'"
+                            [attr.aria-label]="isServiceSelected(service.id) ? 'View added service' : 'View details and add service'"
                             (click)="$event.stopPropagation(); openServicePopup(service.id)">
                             @if (isServiceSelected(service.id)) {
                               <ion-icon name="checkmark-circle-outline" aria-hidden="true"></ion-icon> Added
                             } @else {
-                              Add
+                              View & add
                             }
                           </button>
                         </div>
@@ -199,12 +199,12 @@ type BookingFlowItem = {
                               type="button"
                               class="salon-service-add"
                               [class.selected]="isServiceSelected(service.id)"
-                              [attr.aria-label]="isServiceSelected(service.id) ? 'View added service' : 'View service details'"
+                              [attr.aria-label]="isServiceSelected(service.id) ? 'View added service' : 'View details and add service'"
                               (click)="$event.stopPropagation(); openServicePopup(service.id)">
                               @if (isServiceSelected(service.id)) {
                                 <ion-icon name="checkmark-circle-outline" aria-hidden="true"></ion-icon> Added
                               } @else {
-                                Add
+                                View & add
                               }
                             </button>
                           </div>

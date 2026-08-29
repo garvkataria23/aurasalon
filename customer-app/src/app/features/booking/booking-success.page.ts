@@ -63,10 +63,25 @@ interface SuccessState {
             <div class="check"><ion-icon name="checkmark-done-outline"></ion-icon></div>
             <div>
               <p class="eyebrow">Booking {{ ctx.statusLabel }}</p>
-              <h1>Appointment confirmed</h1>
-              <p class="muted">{{ ctx.title }}</p>
+              <h1>You're booked</h1>
+              <p class="muted">{{ ctx.title }} is confirmed. Keep this reference handy for check-in.</p>
             </div>
           </header>
+
+          <section class="trust-strip" aria-label="Booking confirmation highlights">
+            <div>
+              <span>Reference</span>
+              <strong>{{ ctx.referenceLabel }}</strong>
+            </div>
+            <div>
+              <span>Arrival</span>
+              <strong>{{ ctx.visitRange }}</strong>
+            </div>
+            <div>
+              <span>Next step</span>
+              <strong>Pay at salon</strong>
+            </div>
+          </section>
 
           <section class="appointment-group" aria-label="Appointment information">
             @if (ctx.services.length > 1) {
@@ -113,12 +128,12 @@ interface SuccessState {
             <div class="info-cell">
               <span>Payment</span>
               <strong>{{ ctx.dueLabel || "₹0" }} due at salon</strong>
-              <small>Paid online ₹0 · No online payment required</small>
+              <small>No online charge taken. Pay after your visit.</small>
             </div>
             <div class="info-cell">
               <span>Cancellation</span>
               <strong>Free until {{ ctx.cancellationCutoff }}</strong>
-              <small>Reschedule free up to 1 hour before</small>
+              <small>Manage changes from booking details.</small>
             </div>
           </section>
 
@@ -151,7 +166,7 @@ interface SuccessState {
           <section class="success-card premium-card recovery-card">
             <p class="eyebrow">Booking recovery</p>
             <h1>No confirmed appointment found</h1>
-            <p class="muted">This page shows after a successful booking. If you refreshed or opened it directly, check your bookings or start a new appointment.</p>
+            <p class="muted">This page opens after a confirmed booking. If you refreshed, opened it directly, or changed devices, your latest appointments are safely available in My bookings.</p>
             <div class="recovery-actions">
               <ion-button expand="block" class="primary-gradient" [routerLink]="bookingsLink()">View my bookings</ion-button>
               <ion-button expand="block" fill="outline" class="secondary-button" [routerLink]="bookAgainLink()">Start a booking</ion-button>
@@ -238,6 +253,43 @@ interface SuccessState {
     }
 
     .success-head .muted { margin: 0; }
+
+    .trust-strip {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      padding: 10px;
+      border: 1px solid rgba(16, 185, 129, 0.18);
+      border-radius: 18px;
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(255, 255, 255, 0.78));
+    }
+
+    .trust-strip div {
+      min-width: 0;
+      display: grid;
+      gap: 3px;
+      padding: 9px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.66);
+    }
+
+    .trust-strip span {
+      color: var(--muted);
+      font-size: 0.68rem;
+      font-weight: 950;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .trust-strip strong {
+      overflow: hidden;
+      color: var(--text);
+      font-size: 0.82rem;
+      font-weight: 950;
+      line-height: 1.2;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
 
     .appointment-group {
       display: grid;
@@ -470,6 +522,7 @@ interface SuccessState {
       .success-page { padding: 12px; }
       .success-card { gap: 14px; padding: 16px; }
       .success-head { gap: 10px; }
+      .trust-strip { grid-template-columns: 1fr; }
       .check { width: 50px; height: 50px; border-radius: 17px; font-size: 1.45rem; }
       .appointment-group { padding: 12px; border-radius: 18px; }
       .info-grid { grid-template-columns: 1fr; }

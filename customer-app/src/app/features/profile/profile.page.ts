@@ -56,6 +56,35 @@ import { Booking, CustomerNotificationPreferences, CustomerProfile, CustomerSalo
             </section>
           }
 
+          @if (!editMode() && !mySalonsMode()) {
+            <section class="pass-card premium-card" aria-label="Customer status">
+              <div>
+                <span>Aura customer pass</span>
+                <h2>{{ summaryHeading(customer) }}</h2>
+                <p>{{ summaryLine(customer) }}</p>
+              </div>
+              <ion-icon name="sparkles-outline" aria-hidden="true"></ion-icon>
+            </section>
+
+            <section class="account-grid" aria-label="Account shortcuts">
+              <a class="summary-card premium-card" [routerLink]="profileRoute('bookings')">
+                <ion-icon name="calendar-outline" aria-hidden="true"></ion-icon>
+                <strong>{{ upcomingCount() }} upcoming</strong>
+                <span>Bookings and visits</span>
+              </a>
+              <a class="summary-card premium-card" [routerLink]="profileRoute('rewards')">
+                <ion-icon name="ribbon-outline" aria-hidden="true"></ion-icon>
+                <strong>{{ loyaltyProgressLine(customer) }}</strong>
+                <span>Rewards balance</span>
+              </a>
+              <a class="summary-card premium-card" [routerLink]="profileRoute('wishlist')">
+                <ion-icon name="heart-outline" aria-hidden="true"></ion-icon>
+                <strong>{{ favouriteCount() }} saved</strong>
+                <span>Favourite salons</span>
+              </a>
+            </section>
+          }
+
           @if (mySalonsMode()) {
             <section class="profile-subpage-head premium-card">
               <div>
@@ -450,6 +479,15 @@ import { Booking, CustomerNotificationPreferences, CustomerProfile, CustomerSalo
       padding: 10px;
       color: inherit;
       text-decoration: none;
+      transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+    }
+
+    .summary-card:hover,
+    .summary-card:focus-visible {
+      outline: none;
+      border-color: rgba(124, 99, 223, 0.24);
+      transform: translateY(-2px);
+      box-shadow: 0 16px 32px rgba(28, 28, 28, 0.1);
     }
 
     .summary-card ion-icon {
