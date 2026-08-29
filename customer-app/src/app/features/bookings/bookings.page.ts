@@ -137,7 +137,7 @@ type CheckInState = { kind: "available" | "checked_in" | "unavailable" | "hidden
             </section>
           }
         } @else if (tabBusy()[tab()]) {
-          <section class="empty premium-card" aria-busy="true"><h2>Loading bookings</h2><p>Checking your latest appointments and visit history.</p></section>
+          <section class="empty premium-card loading-state" aria-busy="true"><h2>Loading bookings</h2><p>Checking your latest appointments and visit history.</p><span aria-hidden="true"></span></section>
         } @else if (marketplace.error()) {
           <section class="empty premium-card error">
             <h2>Could not load bookings</h2>
@@ -638,6 +638,15 @@ type CheckInState = { kind: "available" | "checked_in" | "unavailable" | "hidden
       text-transform: none;
     }
 
+    .loading-state span {
+      width: min(220px, 70%);
+      height: 10px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, rgba(232, 232, 232, 0.92), rgba(244, 244, 242, 0.98), rgba(232, 232, 232, 0.92));
+      background-size: 220% 100%;
+      animation: booking-loading-sheen 1.15s ease-in-out infinite;
+    }
+
     .cancel-backdrop {
       position: fixed;
       inset: 0;
@@ -773,6 +782,11 @@ type CheckInState = { kind: "available" | "checked_in" | "unavailable" | "hidden
       }
     }
 
+    @keyframes booking-loading-sheen {
+      from { background-position: 120% 0; }
+      to { background-position: -120% 0; }
+    }
+
     @media (prefers-reduced-motion: reduce) {
       .refresh-strip span {
         animation: none;
@@ -783,6 +797,10 @@ type CheckInState = { kind: "available" | "checked_in" | "unavailable" | "hidden
       .status-pill,
       .support-link {
         transition: none;
+      }
+
+      .loading-state span {
+        animation: none;
       }
     }
   `]

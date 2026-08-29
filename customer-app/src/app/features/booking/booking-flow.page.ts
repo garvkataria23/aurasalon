@@ -436,7 +436,7 @@ type BookingFlowItem = {
                         <small class="status-text">{{ dateAvailabilityLabel(date) }}</small>
                       </button>
                     } @empty {
-                      <section class="state-card stable-state"><h2>No slots available</h2></section>
+                      <section class="state-card stable-state"><h2>No dates available</h2><p class="muted">Try the next week or choose another professional.</p></section>
                     }
                   }
                 </div>
@@ -547,6 +547,7 @@ type BookingFlowItem = {
               <div class="slot-sections">
                 @if (marketplace.loading() && !slotGroups().length) {
                   <section class="slot-group premium-card skeleton-slot-group" aria-label="Loading time slots" aria-busy="true">
+                    <span class="loading-copy">Checking live availability…</span>
                     <span class="skeleton-line heading"></span>
                     <div class="slot-grid">
                       @for (item of [1, 2, 3, 4, 5, 6]; track item) {
@@ -899,6 +900,7 @@ type BookingFlowItem = {
         <main class="page-narrow">
           @if (marketplace.loading()) {
             <section class="state-card premium-card booking-flow-skeleton" aria-label="Loading booking flow" aria-busy="true">
+              <span class="loading-copy">Preparing booking options…</span>
               <span class="skeleton-line title"></span>
               <span class="skeleton-line wide"></span>
               <span class="skeleton-line"></span>
@@ -1070,8 +1072,8 @@ type BookingFlowItem = {
     .booking-cta { width: min(980px, calc(100% - 24px)); margin: 0 auto; }
     .booking-cta.sticky-cta { bottom: calc(8px + env(safe-area-inset-bottom)); }
       .booking-cta.sticky-cta.salon-mode-flow { bottom: calc(64px + env(safe-area-inset-bottom)); }
-    .booking-cta .bottom-action-card { min-height: 0; display: grid; grid-template-columns: 1fr; grid-template-rows: auto; align-items: center; gap: 0; padding: 2px 8px calc(2px + env(safe-area-inset-bottom)); overflow: hidden; border: 1px solid rgba(15, 23, 42, 0.1); border-radius: 14px; background: #FFFFFF; box-shadow: 0 10px 24px rgba(15, 23, 42, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.96); backdrop-filter: blur(18px); }
-    .booking-cta.salon-mode-flow .bottom-action-card { width: min(100%, 360px); margin: 0 auto; min-height: 0; grid-template-rows: auto; padding: 2px 8px; overflow: visible; }
+    .booking-cta .bottom-action-card { min-height: 56px; display: grid; grid-template-columns: 1fr; grid-template-rows: auto; align-items: center; gap: 0; padding: 8px 10px calc(8px + env(safe-area-inset-bottom)); overflow: hidden; border: 1px solid rgba(15, 23, 42, 0.1); border-radius: 18px; background: #FFFFFF; box-shadow: 0 10px 24px rgba(15, 23, 42, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.96); backdrop-filter: blur(18px); }
+    .booking-cta.salon-mode-flow .bottom-action-card { width: min(100%, 360px); margin: 0 auto; min-height: 56px; grid-template-rows: auto; padding: 8px 10px; overflow: visible; }
     .assign-footer-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px; }
     .assign-status { margin: 0; color: var(--muted); font-size: 0.84rem; font-weight: 850; letter-spacing: 0.02em; }
     .booking-summary-metrics { min-width: 0; display: flex; align-items: center; gap: 7px; padding: 0 0 0 4px; border: 0; border-radius: 16px; background: transparent; color: var(--text); text-align: left; }
@@ -1082,8 +1084,8 @@ type BookingFlowItem = {
     .summary-copy strong { overflow: hidden; color: #020617; font-size: 1rem; font-weight: 950; line-height: 1.05; text-overflow: ellipsis; white-space: nowrap; }
     .summary-copy small { order: 2; overflow: hidden; color: #111827; font-size: 0.88rem; font-weight: 950; line-height: 1.1; text-overflow: ellipsis; white-space: nowrap; }
     .summary-total { display: none; }
-    .booking-cta .bottom-action-card ion-button { min-width: 96px; min-height: 28px; height: 28px; margin: 0; --border-radius: 999px; --padding-top: 0; --padding-bottom: 0; --box-shadow: 0 8px 16px rgba(79, 70, 229, 0.22); font-size: 0.72rem; font-weight: 950; letter-spacing: 0.01em; }
-    .booking-cta.salon-mode-flow .bottom-action-card ion-button { min-width: 88px; min-height: 28px; height: 28px; font-size: 0.7rem; }
+    .booking-cta .bottom-action-card ion-button { min-width: 112px; min-height: 40px; height: 40px; margin: 0; --border-radius: 999px; --padding-top: 0; --padding-bottom: 0; --box-shadow: 0 8px 16px rgba(79, 70, 229, 0.22); font-size: 0.82rem; font-weight: 950; letter-spacing: 0.01em; }
+    .booking-cta.salon-mode-flow .bottom-action-card ion-button { min-width: 104px; min-height: 40px; height: 40px; font-size: 0.78rem; }
     .salon-mode-flow .assign-footer-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; justify-content: stretch; }
     .button-spinner { width: 16px; height: 16px; display: inline-block; margin-right: 8px; border: 2px solid rgba(255,255,255,.5); border-top-color: #fff; border-radius: 999px; animation: button-spin 700ms linear infinite; vertical-align: -3px; }
     .booking-hero { display: grid; gap: 4px; align-items: center; padding: 16px; }
@@ -1180,6 +1182,7 @@ type BookingFlowItem = {
     .date-row { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(98px, 1fr); gap: 8px; overflow-x: auto; padding: 2px 1px 12px; overscroll-behavior-x: contain; scroll-snap-type: x proximity; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
     .date-row::-webkit-scrollbar { display: none; }
     .date-card, .slot { border: 1px solid var(--border); border-radius: 18px; background: var(--surface); color: var(--text); font-weight: 900; }
+    .date-card:focus-visible, .slot:focus-visible, .shortcut-chip:focus-visible, .month-nav-btn:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
     .date-card { position: relative; display: grid; gap: 4px; justify-items: center; min-height: 78px; padding: 12px 10px 10px; overflow: hidden; scroll-snap-align: start; }
     .date-card.selected { color: #FFFFFF; border-color: transparent; background: var(--primary); box-shadow: 0 10px 24px rgba(124, 99, 223, 0.16); }
     .date-card.selected span { color: rgba(255,255,255,.82); }
@@ -1190,6 +1193,7 @@ type BookingFlowItem = {
     .date-card em { display: none; }
     .current-badge, .slot small { display: inline-flex; align-items: center; justify-content: center; min-height: 18px; padding: 0 7px; border-radius: 999px; color: var(--primary); background: rgba(124, 99, 223, 0.12); font-size: 0.68rem; font-weight: 950; line-height: 1; }
     .date-card.selected .current-badge { color: #FFFFFF; background: rgba(255, 255, 255, 0.22); }
+    .loading-copy { display: block; color: var(--muted); font-size: 0.84rem; font-weight: 850; line-height: 1.35; }
     .skeleton-line { display: block; width: 100%; height: 12px; border-radius: 999px; background: linear-gradient(90deg, rgba(232, 232, 232, 0.92), rgba(244, 244, 242, 0.98), rgba(232, 232, 232, 0.92)); background-size: 220% 100%; animation: booking-skeleton 1.15s ease-in-out infinite; }
     .skeleton-line.title { width: min(260px, 75%); height: 28px; border-radius: 12px; }
     .skeleton-line.heading { width: 112px; height: 18px; margin-bottom: 12px; border-radius: 10px; }
@@ -1249,8 +1253,8 @@ type BookingFlowItem = {
       }
 
       .booking-cta { width: min(100% - 16px, 980px); }
-      .booking-cta .bottom-action-card { min-height: 0; gap: 0; padding: 2px 8px; border-radius: 14px; }
-      .booking-cta.salon-mode-flow .bottom-action-card { width: 100%; margin: 0; min-height: 0; padding: 2px 8px; overflow: visible; }
+      .booking-cta .bottom-action-card { min-height: 56px; gap: 0; padding: 8px 10px; border-radius: 18px; }
+      .booking-cta.salon-mode-flow .bottom-action-card { width: 100%; margin: 0; min-height: 56px; padding: 8px 10px; overflow: visible; }
       .assign-footer-row { gap: 9px; }
       .booking-summary-metrics { gap: 6px; padding-left: 2px; }
       .summary-copy { gap: 30px; }
@@ -1259,8 +1263,8 @@ type BookingFlowItem = {
       .booking-cta.salon-mode-flow .booking-summary-metrics { display: flex; align-items: center; gap: 6px; padding-left: 2px; text-align: left; }
       .booking-cta.salon-mode-flow .assign-footer-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 9px; align-items: center; justify-content: stretch; }
 
-      .booking-cta .bottom-action-card ion-button { min-width: 94px; min-height: 28px; height: 28px; }
-      .booking-cta.salon-mode-flow .bottom-action-card ion-button { min-width: 86px; min-height: 28px; height: 28px; font-size: 0.7rem; }
+      .booking-cta .bottom-action-card ion-button { min-width: 108px; min-height: 40px; height: 40px; }
+      .booking-cta.salon-mode-flow .bottom-action-card ion-button { min-width: 100px; min-height: 40px; height: 40px; font-size: 0.78rem; }
 
       .booking-intent-row, .resource-grid, .time-mode-row { grid-template-columns: 1fr; }
       .service-list { gap: 8px; }
