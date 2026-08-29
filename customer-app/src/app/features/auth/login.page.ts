@@ -1375,14 +1375,14 @@ export class LoginPage implements OnInit, OnDestroy {
     return ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname);
   }
 
-  private afterProviderSignIn(session: { customer: CustomerProfile }) {
+  private async afterProviderSignIn(session: { customer: CustomerProfile }) {
     this.auth.error.set("");
     const customer = this.auth.customer() || session.customer;
     if (!this.auth.profileComplete(customer)) {
       this.prepareCompletion(customer);
       return;
     }
-    this.openHome();
+    await this.openReturnUrl();
   }
 
   private prepareCompletion(customer = this.auth.customer()) {
@@ -1476,18 +1476,20 @@ export class LoginPage implements OnInit, OnDestroy {
     this.completionResendCountdown = 0;
   }
 
-  private openHome() {
-    this.openReturnUrl();
+  private async openHome() {
+    await this.openReturnUrl();
   }
 
-  private openReturnUrl() {
+  private async openReturnUrl() {
     const customer = this.auth.customer();
     if (this.auth.isAuthenticated() && customer && !this.auth.profileComplete(customer)) {
       this.prepareCompletion(customer);
       return;
     }
     const returnUrl = this.route.snapshot.queryParamMap.get("returnUrl");
-    void this.router.navigateByUrl(this.safeReturnUrl(returnUrl));
+    const target = this.safeReturnUrl(returnUrl);
+    const navigated = await this.router.navigateByUrl(target).catch(() => false);
+    if (!navigated && window.location.pathname === "/login") window.location.assign(target);
   }
 
   private async saveCompletedProfile() {

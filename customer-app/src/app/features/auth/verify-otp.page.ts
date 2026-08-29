@@ -198,6 +198,16 @@ export class VerifyOtpPage {
   }
 
   private returnUrl(): string {
-    return this.route.snapshot.queryParamMap.get("returnUrl") || "/tabs/home";
+    const returnUrl = this.route.snapshot.queryParamMap.get("returnUrl");
+    if (!returnUrl || !returnUrl.startsWith("/") || returnUrl.startsWith("//")) return "/tabs/home";
+    try {
+      const url = new URL(returnUrl, window.location.origin);
+      if (url.origin !== window.location.origin) return "/tabs/home";
+      const path = `${url.pathname}${url.search}${url.hash}`;
+      if (/^\/(login|signup|verify-otp)(?:\?|#|$)/.test(path)) return "/tabs/home";
+      return path;
+    } catch {
+      return "/tabs/home";
+    }
   }
 }
