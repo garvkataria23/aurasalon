@@ -3,6 +3,7 @@ import { authenticateJwt } from "../middleware/auth.js";
 import { asyncHandler } from "../middleware/async-handler.js";
 import { customerAppService } from "../services/customer-app.service.js";
 import { customerNotificationService } from "../services/customer-notification.service.js";
+import { slotReservationService } from "../services/slot-reservation.service.js";
 
 export const customerAppRouter = Router();
 
@@ -34,6 +35,39 @@ customerAppRouter.post("/customer/bookings/:id/waitlist", asyncHandler((req, res
 
 customerAppRouter.post("/customer/bookings/:id/review", asyncHandler((req, res) => {
   res.status(201).json(customerAppService.reviewBooking(req.access, req.params.id, req.body || {}));
+}));
+
+// Slot reservation (customer-facing). Reuses the shared slotReservationService so the
+// customer app no longer relies on a local-timer fallback. Additive wrapper only.
+customerAppRouter.post("/customer/slot-holds", asyncHandler((req, res) => {
+  const { serviceIds, staffId, branchId, startAt, durationMinutes } = req.body || {};
+  const startTime = startAt;
+  const duration = Number(durationMinutes || 0);
+  const endTime = duration > 0 ? new Date(new Date(startTime).getTime() + duration * 60000).toISOString() : "";
+  const result = slotReservationService.createHold({
+    branchId,
+    startTime,
+    endTime,
+    staffId: staffId || "",
+    serviceIds: Array.isArray(serviceIds) ? serviceIds : [],
+    sessionId: req.access.sessionId || ""
+  }, req.access);
+  res.status(201).json({
+    holdId: result.holdId,
+    serviceIds: Array.isArray(serviceIds) ? serviceIds : [],
+    staffId: staffId || null,
+    branchId: branchId || "",
+    startAt: startTime,
+    endAt: endTime,
+    expiresAt: result.reservedUntil,
+    status: "active",
+    createdAt: new Date().toISOString()
+  });
+}));
+
+customerAppRouter.delete("/customer/slot-holds/:holdId", asyncHandler((req, res) => {
+  slotReservationService.releaseHold(req.params.holdId, req.access);
+  res.json({ ok: true });
 }));
 
 customerAppRouter.get("/customer/favorites", asyncHandler((req, res) => {

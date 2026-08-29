@@ -1,0 +1,53 @@
+{
+  "safeOrigin": "http://127.0.0.1:4311",
+  "steps": [
+    {
+      "label": "resched-flow",
+      "url": "/login?returnUrl=%2Ftabs%2Fbookings",
+      "text": "AURA CUSTOMER APP\n\nBook salon visits without calling.\n\nSearch nearby salons, compare services, save offers, and manage bookings from one clean mobile app.\n\nLive slots\nRewards\nFast OTP\nEmail\nContinue\nOR\nContinue with mobile\nContinue with Facebook\nContinue with Google\nContinue with WhatsApp\nDemo login as garvkataria\nCONTINUE AS GUEST"
+    },
+    {
+      "label": "resched-review",
+      "url": "/login?returnUrl=%2Ftabs%2Fbookings",
+      "text": "AURA CUSTOMER APP\n\nBook salon visits without calling.\n\nSearch nearby salons, compare services, save offers, and manage bookings from one clean mobile app.\n\nLive slots\nRewards\nFast OTP\nEmail\nContinue\nOR\nContinue with mobile\nContinue with Facebook\nContinue with Google\nContinue with WhatsApp\nDemo login as garvkataria\nCONTINUE AS GUEST"
+    },
+    {
+      "label": "resched-result",
+      "url": "/login?returnUrl=%2Ftabs%2Fbookings",
+      "text": "AURA CUSTOMER APP\n\nBook salon visits without calling.\n\nSearch nearby salons, compare services, save offers, and manage bookings from one clean mobile app.\n\nLive slots\nRewards\nFast OTP\nEmail\nContinue\nOR\nContinue with mobile\nContinue with Facebook\nContinue with Google\nContinue with WhatsApp\nDemo login as garvkataria\nCONTINUE AS GUEST"
+    }
+  ],
+  "created": {
+    "slotClicked": true,
+    "confirmClicked": false,
+    "mutationCount": 0,
+    "mutations": []
+  },
+  "detailOpened": false,
+  "bookingId": null,
+  "reschedule": {
+    "clicked": false,
+    "slot": false,
+    "confirm": false,
+    "mutationCount": 0,
+    "mutations": []
+  },
+  "rescheduleResultUrl": "/login?returnUrl=%2Ftabs%2Fbookings",
+  "rescheduleResultBody": "AURA CUSTOMER APP\n\nBook salon visits without calling.\n\nSearch nearby salons, compare services, save offers, and manage bookings from one clean mobile app.\n\nLive slots\nRewards\nFast OTP\nEmail\nContinue\nOR\nContinue with mobile\nContinue with Facebook\nContinue with Google\nContinue with WhatsApp\nDemo login as garvkataria\nCONTINUE AS GUEST",
+  "cancel": {
+    "confirm": false,
+    "mutationCount": 0,
+    "mutations": []
+  },
+  "prodHits": [],
+  "hosts": [
+    "127.0.0.1:4311"
+  ],
+  "responseErrors": [
+    {
+      "url": "http://127.0.0.1:4311/api/v1/customer/slot-holds",
+      "status": 401
+    }
+  ],
+  "consoleErrors": []
+}

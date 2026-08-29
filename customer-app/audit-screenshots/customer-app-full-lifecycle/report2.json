@@ -1,0 +1,91 @@
+{
+  "safeOrigin": "http://127.0.0.1:4311",
+  "steps": [
+    {
+      "label": "20-detail-opened",
+      "url": "/bookings/appt_16a938fe-7",
+      "text": "Booking details\nAura Salon Group\nConfirmed\nFace & Neck Bleach\n\nAura Salon Group\n\nAPPOINTMENT TIME\nSat, 29 Aug · 5:00 PM–5:20 PM\nDuration\n20 min\nProfessional\nAftab Ahmed\nVenue\nRoad 36, Jubilee Hills\nPayment\nPayment due at salon\nBooking reference\nBooking #APPT-16A938FE-7\nCopy\nReschedule\nContact salon\nDirections\nManage booking\nAdd to calendar\nShare booking\nHELP & SALON\nView salon\nRequest support for this booking\nGeneral Help Centre\nCancellation policy\nReview impact before cancelling\n\nCUTOFF\nCheck the salon policy text below for the cutoff.\n\nCANCELLATION FEE\nNo cancellation fee shown for this booking.\n\nREFUND BEFORE CANCELLATION\nNo online payment found, so refund amount is ₹0.\n\nPACKAGE/MEMBERSHIP CREDITS\nNo package or membership credits are linked to this booking.\n\nPolicy: Cancel or reschedule from the app before the branch cutoff time.\n\nCancel booking"
+    },
+    {
+      "label": "21-reschedule-flow",
+      "url": "/business/aura-salon-jubilee-hills-branch-hyd/book?serviceId=serv_b2f06938-4&staffId=staf_01b3853a-0&date=2026-08-29&slotStartAt=2026-08-29T11:30:00.000Z&step=3&rescheduleBookingId=appt_16a938fe-7",
+      "text": "Edit appointment\nAura Salon Group · Road 36\nEdit appointment\nFace & Neck Bleach\nCurrent: Sat, Aug 29 at 5:00 PM · Aftab Ahmed\nServices\nStaff\n3\nTime\n4\nReview\nPick date and time\n1 service · 20 min appointment\nSingle service appointment\nOctober 2026\nSat\n29\nAug\nCurrent\nSun\n30\nAug\nMon\n31\nAug\nTue\n1\nSep\nWed\n2\nSep\nThu\n3\nSep\nFri\n4\nSep\nSat\n5\nSep\nSun\n6\nSep\nMon\n7\nSep\nTue\n8\nSep\nWed\n9\nSep\nThu\n10\nSep\nFri\n11\nSep\nSat\n12\nSep\nSun\n13\nSep\nMon\n14\nSep\nTue\n15\nSep\nWed\n16\nSep\nThu\n17\nSep\nFri\n18\nSep\nSat\n19\nSep\nSun\n20\nSep\nMon\n21\nSep\nTue\n22\nSep\nWed\n23\nSep\nThu\n24\nSep\nFri\n25\nSep\nSat\n26\nSep\nSun\n27\nSep\nMon\n28\nSep\nTue\n29\nSep\nWed\n30\nSep\nThu\n1\nOct\nFri\n2\nOct\nSat\n3\nOct\nSun\n4\nOct\nMon\n5\nOct\nTue\n6\nOct\nWed\n7\nOct\nThu\n8\nOct\nFri\n9\nOct\nSat\n10\nOct\nSun\n11\nOct\nMon\n12\nOct\nTue\n13\nOct\nWed\n14\nOct\nThu\n15\nOct\nFri\n16\nOct\nSat\n17\nOct\nSun\n18\nOct\nMon\n19\nOct\nTue\n20\nOct\nWed\n21\nOct\nThu\n22\nOct\nFri\n23\nOct\nSat\n24\nOct\nSun\n25\nOct\nMon\n26\nOct\nTue\n27\nOct\nWed\n28\nOct\nThu\n29\nOct\nFri\n30\nOct\nAvailable\nFilling fast\nUnavailable\nNext available\nThis week\nAvailable start times\nTimes shown are arrival/start times for your visit\nEvening\n5:30 PM\n6:00 PM\n6:30 PM\n7:00 PM\n7:30 PM\nYOUR SELECTED SERVICES & VISIT TIMELINE\n1. Face & Neck Bleach\n5:00 PM · Aftab Ahmed\n1 service\n20 min\nCONTINUE"
+    },
+    {
+      "label": "22-reschedule-slot",
+      "url": "/business/aura-salon-jubilee-hills-branch-hyd/book?serviceId=serv_b2f06938-4&staffId=staf_01b3853a-0&date=2026-08-29&slotStartAt=2026-08-29T11:30:00.000Z&step=3&rescheduleBookingId=appt_16a938fe-7",
+      "text": "Edit appointment\nAura Salon Group · Road 36\nBooking data unavailable\n\nRoute not found: POST /api/v1/customer/slot-holds\n\nRETRY\nEdit appointment\nFace & Neck Bleach\nCurrent: Sat, Aug 29 at 5:00 PM · Aftab Ahmed\nServices\nStaff\n3\nTime\n4\nReview\nPick date and time\n1 service · 20 min appointment\nSingle service appointment\nOctober 2026\nSat\n29\nAug\nCurrent\nSun\n30\nAug\nMon\n31\nAug\nTue\n1\nSep\nWed\n2\nSep\nThu\n3\nSep\nFri\n4\nSep\nSat\n5\nSep\nSun\n6\nSep\nMon\n7\nSep\nTue\n8\nSep\nWed\n9\nSep\nThu\n10\nSep\nFri\n11\nSep\nSat\n12\nSep\nSun\n13\nSep\nMon\n14\nSep\nTue\n15\nSep\nWed\n16\nSep\nThu\n17\nSep\nFri\n18\nSep\nSat\n19\nSep\nSun\n20\nSep\nMon\n21\nSep\nTue\n22\nSep\nWed\n23\nSep\nThu\n24\nSep\nFri\n25\nSep\nSat\n26\nSep\nSun\n27\nSep\nMon\n28\nSep\nTue\n29\nSep\nWed\n30\nSep\nThu\n1\nOct\nFri\n2\nOct\nSat\n3\nOct\nSun\n4\nOct\nMon\n5\nOct\nTue\n6\nOct\nWed\n7\nOct\nThu\n8\nOct\nFri\n9\nOct\nSat\n10\nOct\nSun\n11\nOct\nMon\n12\nOct\nTue\n13\nOct\nWed\n14\nOct\nThu\n15\nOct\nFri\n16\nOct\nSat\n17\nOct\nSun\n18\nOct\nMon\n19\nOct\nTue\n20\nOct\nWed\n21\nOct\nThu\n22\nOct\nFri\n23\nOct\nSat\n24\nOct\nSun\n25\nOct\nMon\n26\nOct\nTue\n27\nOct\nWed\n28\nOct\nThu\n29\nOct\nFri\n30\nOct\nAvailable\nFilling fast\nUnavailable\nNext available\nThis week\nCOMPLETE VISIT TIMELINE\n5:30 PM–5:50 PM\nSequence total: 20 min (includes preparation/buffer where needed)\n⏱️ Slot reserved: 04:59\n5:30 PM–5:50 PM\nFace & Neck Bleach\nAftab Ahmed · 20 min\nAvailable start times\nTimes shown are arrival/start times for your visit\nEvening\n5:30 PM\n6:00 PM\n6:30 PM\n7:00 PM\n7:30 PM\nYOUR SELECTED SERVIC"
+    },
+    {
+      "label": "23-reschedule-summary",
+      "url": "/business/aura-salon-jubilee-hills-branch-hyd/book?serviceId=serv_b2f06938-4&staffId=staf_01b3853a-0&date=2026-08-29&slotStartAt=2026-08-29T11:30:00.000Z&step=3&rescheduleBookingId=appt_16a938fe-7",
+      "text": "Edit appointment\nAura Salon Group · Road 36\nBooking data unavailable\n\nRoute not found: POST /api/v1/customer/slot-holds\n\nRETRY\nEdit appointment\nFace & Neck Bleach\nCurrent: Sat, Aug 29 at 5:00 PM · Aftab Ahmed\nServices\nStaff\nTime\n4\nReview\nConfirm your changes\nA\nAura Salon Group\nRoad 36, Jubilee Hills\nNew salon\nSelected services (1)\nEdit\n1\nFace & Neck Bleach\nProfessional: Aftab Ahmed\n20 min · ₹450\nAssigned professionals\nEdit\nFace & Neck Bleach: Aftab Ahmed\nDate & visit schedule\nEdit\nCURRENT APPOINTMENT\nCurrent: Sat, Aug 29 at 5:00 PM\nNEW APPOINTMENT\nNew: Sat, Aug 29 at 5:30 PM\nSat, 29 Aug\n· Visit Window: 5:30 PM–5:50 PM\n1\n5:30 PM–5:50 PM\nFace & Neck Bleach\nAftab Ahmed · 20 min\nCustomer notes & requests (optional)\nBenefits & coupons\nApply membership or package benefits\nApply\nApply\nCancellation Policy\n\nFree cancellation up to 2 hours before appointment. View policy\n\nRescheduling Policy\n\nFree rescheduling available up to 1 hour before start time.\n\nPrice summary\nService subtotal\n₹450\nTaxes & fees\n₹0\nOnline deposit required\n₹0\nTotal payable at salon\nNo online payment required\n₹450 payable at salon\n\n₹450 payable at salon · No online payment required\n\n1 service\n20 min\nCONFIRM CHANGES"
+    },
+    {
+      "label": "24-reschedule-result",
+      "url": "/business/aura-salon-jubilee-hills-branch-hyd/book?serviceId=serv_b2f06938-4&staffId=staf_01b3853a-0&date=2026-08-29&slotStartAt=2026-08-29T11:30:00.000Z&step=3&rescheduleBookingId=appt_16a938fe-7",
+      "text": "Edit appointment\nAura Salon Group · Road 36\nBooking data unavailable\n\nRoute not found: POST /api/v1/customer/slot-holds\n\nRETRY\nEdit appointment\nFace & Neck Bleach\nCurrent: Sat, Aug 29 at 5:00 PM · Aftab Ahmed\nServices\nStaff\nTime\n4\nReview\nConfirm your changes\nA\nAura Salon Group\nRoad 36, Jubilee Hills\nNew salon\nSelected services (1)\nEdit\n1\nFace & Neck Bleach\nProfessional: Aftab Ahmed\n20 min · ₹450\nAssigned professionals\nEdit\nFace & Neck Bleach: Aftab Ahmed\nDate & visit schedule\nEdit\nCURRENT APPOINTMENT\nCurrent: Sat, Aug 29 at 5:00 PM\nNEW APPOINTMENT\nNew: Sat, Aug 29 at 5:30 PM\nSat, 29 Aug\n· Visit Window: 5:30 PM–5:50 PM\n1\n5:30 PM–5:50 PM\nFace & Neck Bleach\nAftab Ahmed · 20 min\nCustomer notes & requests (optional)\nBenefits & coupons\nApply membership or package benefits\nApply\nApply\nCancellation Policy\n\nFree cancellation up to 2 hours before appointment. View policy\n\nRescheduling Policy\n\nFree rescheduling available up to 1 hour before start time.\n\nPrice summary\nService subtotal\n₹450\nTaxes & fees\n₹0\nOnline deposit required\n₹0\nTotal payable at salon\nNo online payment required\n₹450 payable at salon\n\n₹450 payable at salon · No online payment required\n\n1 service\n20 min\nCONFIRM CHANGES"
+    },
+    {
+      "label": "24-reschedule-detail-url",
+      "url": "/business/aura-salon-jubilee-hills-branch-hyd/book?serviceId=serv_b2f06938-4&staffId=staf_01b3853a-0&date=2026-08-29&slotStartAt=2026-08-29T11:30:00.000Z&step=3&rescheduleBookingId=appt_16a938fe-7",
+      "text": "Edit appointment\nAura Salon Group · Road 36\nBooking data unavailable\n\nRoute not found: POST /api/v1/customer/slot-holds\n\nRETRY\nEdit appointment\nFace & Neck Bleach\nCurrent: Sat, Aug 29 at 5:00 PM · Aftab Ahmed\nServices\nStaff\nTime\n4\nReview\nConfirm your changes\nA\nAura Salon Group\nRoad 36, Jubilee Hills\nNew salon\nSelected services (1)\nEdit\n1\nFace & Neck Bleach\nProfessional: Aftab Ahmed\n20 min · ₹450\nAssigned professionals\nEdit\nFace & Neck Bleach: Aftab Ahmed\nDate & visit schedule\nEdit\nCURRENT APPOINTMENT\nCurrent: Sat, Aug 29 at 5:00 PM\nNEW APPOINTMENT\nNew: Sat, Aug 29 at 5:30 PM\nSat, 29 Aug\n· Visit Window: 5:30 PM–5:50 PM\n1\n5:30 PM–5:50 PM\nFace & Neck Bleach\nAftab Ahmed · 20 min\nCustomer notes & requests (optional)\nBenefits & coupons\nApply membership or package benefits\nApply\nApply\nCancellation Policy\n\nFree cancellation up to 2 hours before appointment. View policy\n\nRescheduling Policy\n\nFree rescheduling available up to 1 hour before start time.\n\nPrice summary\nService subtotal\n₹450\nTaxes & fees\n₹0\nOnline deposit required\n₹0\nTotal payable at salon\nNo online payment required\n₹450 payable at salon\n\n₹450 payable at salon · No online payment required\n\n1 service\n20 min\nCONFIRM CHANGES"
+    },
+    {
+      "label": "25-detail-after-reschedule",
+      "url": "/bookings/appt_16a938fe-7",
+      "text": "Booking details\nAura Salon Group\nConfirmed\nFace & Neck Bleach\n\nAura Salon Group\n\nAPPOINTMENT TIME\nSat, 29 Aug · 5:00 PM–5:20 PM\nDuration\n20 min\nProfessional\nAftab Ahmed\nVenue\nRoad 36, Jubilee Hills\nPayment\nPayment due at salon\nBooking reference\nBooking #APPT-16A938FE-7\nCopy\nReschedule\nContact salon\nDirections\nManage booking\nAdd to calendar\nShare booking\nHELP & SALON\nView salon\nRequest support for this booking\nGeneral Help Centre\nCancellation policy\nReview impact before cancelling\n\nCUTOFF\nCheck the salon policy text below for the cutoff.\n\nCANCELLATION FEE\nNo cancellation fee shown for this booking.\n\nREFUND BEFORE CANCELLATION\nNo online payment found, so refund amount is ₹0.\n\nPACKAGE/MEMBERSHIP CREDITS\nNo package or membership credits are linked to this booking.\n\nPolicy: Cancel or reschedule from the app before the branch cutoff time.\n\nCancel booking"
+    },
+    {
+      "label": "26-cancel-sheet",
+      "url": "/bookings/appt_16a938fe-7",
+      "text": "Booking details\nAura Salon Group\nConfirmed\nFace & Neck Bleach\n\nAura Salon Group\n\nAPPOINTMENT TIME\nSat, 29 Aug · 5:00 PM–5:20 PM\nDuration\n20 min\nProfessional\nAftab Ahmed\nVenue\nRoad 36, Jubilee Hills\nPayment\nPayment due at salon\nBooking reference\nBooking #APPT-16A938FE-7\nCopy\nReschedule\nContact salon\nDirections\nManage booking\nAdd to calendar\nShare booking\nHELP & SALON\nView salon\nRequest support for this booking\nGeneral Help Centre\nCancellation policy\nReview impact before cancelling\n\nCUTOFF\nCheck the salon policy text below for the cutoff.\n\nCANCELLATION FEE\nNo cancellation fee shown for this booking.\n\nREFUND BEFORE CANCELLATION\nNo online payment found, so refund amount is ₹0.\n\nPACKAGE/MEMBERSHIP CREDITS\nNo package or membership credits are linked to this booking.\n\nPolicy: Cancel or reschedule from the app before the branch cutoff time.\n\nCancel booking\nCancel this appointment?\n\nFace & Neck Bleach · Aura Salon Group · Sat, 29 Aug · 5:00 PM\n\nThis appointment will be cancelled.\n\nNo online payment found, so refund amount is ₹0.\n\nNo cancellation fee shown for this booking.\n\nNo package or membership credits are linked to this booking.\n\nPolicy: Cancel or reschedule from the app before the branch cutoff time.\n\nKeep appointment\nYes, cancel appointment\nWould you prefer to reschedule instead?"
+    },
+    {
+      "label": "27-cancel-result",
+      "url": "/bookings/appt_16a938fe-7",
+      "text": "Booking details\nAura Salon Group\nThis booking was cancelled.\nCancelled\nFace & Neck Bleach\n\nAura Salon Group\n\nAPPOINTMENT TIME\nSat, 29 Aug · 5:00 PM–5:20 PM\nDuration\n20 min\nProfessional\nAftab Ahmed\nVenue\nRoad 36, Jubilee Hills\nPayment\nPayment due at salon\nBooking reference\nBooking #APPT-16A938FE-7\nCopy\nAdd to calendar\nShare booking\nBook again\n\nReady for another visit? Start a fresh booking with this salon.\n\nRebook\nHELP & SALON\nView salon\nRequest support for this booking\nGeneral Help Centre\nCancellation policy\nCancellation is not available for this booking\n\nCUTOFF\nCheck the salon policy text below for the cutoff.\n\nCANCELLATION FEE\nNo cancellation fee shown for this booking.\n\nREFUND BEFORE CANCELLATION\nNo online payment found, so refund amount is ₹0.\n\nPACKAGE/MEMBERSHIP CREDITS\nNo package or membership credits are linked to this booking.\n\nPolicy: Cancel or reschedule from the app before the branch cutoff time.\n\nAppointment cancelled\n\nFace & Neck Bleach · Aura Salon Group · Sat, 29 Aug · 5:00 PM\n\nNo online payment found, so refund amount is ₹0.\n\nDone"
+    }
+  ],
+  "cardClicked": true,
+  "detailUrl": "/bookings/appt_16a938fe-7",
+  "reschedule": {
+    "clicked": true,
+    "slot": true,
+    "confirm": false,
+    "mutationCount": 0,
+    "mutations": []
+  },
+  "cancel": {
+    "clicked": true,
+    "confirm": true,
+    "mutationCount": 1,
+    "mutations": [
+      {
+        "method": "POST",
+        "url": "http://127.0.0.1:4311/api/v1/customer/bookings/appt_16a938fe-7/cancel"
+      }
+    ]
+  },
+  "cancelled": "Booking details\nAura Salon Group\nThis booking was cancelled.\nCancelled\nFace & Neck Bleach\n\nAura Salon Group\n\nAPPOINTMENT TIME\nSat, 29 Aug · 5:00 PM–5:20 PM\nDuration\n20 min\nProfessional\nAftab Ahmed\nVenue\nRoad 36, Jubilee Hills\nPayment\nPayment due at salon\nBooking reference\nBooking #APPT-16A938FE-7\nCopy\nAdd to calendar\nShare booking\nBook again\n\nReady for another visit? Start a fresh booking with this salon.\n\nRebook\nHELP & SALON\nView salon\nRequest support for this booking\nGeneral Help Centre\nCancellation policy\nCancellation is not available for this booking\n\nCUTOFF\nCheck the salon policy text below for the cutoff.\n\nCANCELLATION FEE\nNo cancellation fee shown for this booking.\n\nREFUND BEFORE CANCELLATION\nNo online payment found, so refund amount is ₹0.\n\nPACKAGE/MEMBERSHIP CREDITS\nNo package or membership credits are linked to this booking.\n\nPolicy: Cancel or reschedule from the app before the branch cutoff time.\n\nAppointment cancelled\n\nFace & Neck Bleach · Aura Salon Group · Sat, 29 Aug · 5:00 PM\n\nNo online payment found, so refund amount is ₹0.\n\nDone",
+  "detailBookId": "appt_16a938fe-7",
+  "bookingIdForCleanup": "appt_16a938fe-7",
+  "hosts": [
+    "127.0.0.1:4311",
+    "127.0.0.1:4000"
+  ],
+  "prodHits": [],
+  "responseErrors": [
+    {
+      "url": "http://127.0.0.1:4311/api/v1/customer/slot-holds",
+      "status": 404
+    }
+  ],
+  "failures": [
+    {
+      "requestId": "20012.88",
+      "errorText": "net::ERR_BLOCKED_BY_ORB"
+    }
+  ],
+  "consoleErrors": []
+}

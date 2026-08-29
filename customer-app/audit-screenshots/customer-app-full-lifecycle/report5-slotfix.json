@@ -1,0 +1,28 @@
+{
+  "loggedIn": true,
+  "confirm": true,
+  "confirmedUrl": "/booking/success",
+  "finalBody": "BOOKING CONFIRMED\n\nYou're booked\n\n1 service at Road 36 is confirmed. Keep this reference handy for check-in.\n\nREFERENCE\nBooking #appt_683a4759-3\nARRIVAL\n6:00 PM – 6:20 PM\nNEXT STEP\nPay at salon\nSERVICE\nFace & Neck Bleach\nwith Any professional · 20 min\nTime\n6:00 PM – 6:20 PM\nAddress\nRoad 36, Jubilee Hills\nReference\nBooking #appt_683a4759-3\nCopy\nPAYMENT\n₹450 due at salon\nNo online charge taken. Pay after your visit.\nCANCELLATION\nFree until appointment time\nManage changes from booking details.\nView booking\nDirections\nAdd to calendar\nCopy reference\nBook another service\nHome",
+  "slotHoldResponses": [
+    {
+      "url": "http://127.0.0.1:4311/api/v1/customer/slot-holds",
+      "status": 403
+    }
+  ],
+  "responseErrors": [
+    {
+      "url": "http://127.0.0.1:4311/api/v1/customer/slot-holds",
+      "status": 403
+    }
+  ],
+  "slotHold404Gone": true,
+  "slotHold401": false,
+  "consoleTracked": [
+    "Slot hold failed, using local timer: Error: This user does not have access to the requested branch\n    at http://127.0.0.1:4311/chunk-IC6RUBZJ.js:387:31\n    at Observable2.init [as _subscribe] (http:/"
+  ],
+  "prodHits": [],
+  "hosts": [
+    "127.0.0.1:4311",
+    "127.0.0.1:4000"
+  ]
+}

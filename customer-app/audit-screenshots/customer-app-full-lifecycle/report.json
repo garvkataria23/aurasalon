@@ -1,0 +1,164 @@
+{
+  "safeOrigin": "http://127.0.0.1:4311",
+  "steps": [
+    {
+      "label": "01-login",
+      "url": "/login",
+      "text": "AURA CUSTOMER APP\n\nBook salon visits without calling.\n\nSearch nearby salons, compare services, save offers, and manage bookings from one clean mobile app.\n\nLive slots\nRewards\nFast OTP\nEmail\nContinue\nOR\nContinue with mobile\nContinue with Facebook\nContinue with Google\nContinue with WhatsApp\nDemo login as garvkataria\nCONTINUE AS GUEST"
+    },
+    {
+      "label": "02-home",
+      "url": "/tabs/home",
+      "text": "Choose location\nSearch services or salons\nSEPT\n02\nFull Back Bleach\n\nAura Salon Group · Wed, 10:30 am\n\nView\nAS\nYOUR PRIMARY SALON\nAura Salon Indiranagar\nSet 16d ago\nBook\nRewards\nWallet\nFROM YOUR VISITS\nBook again\nAura Salon Group\nFace & Neck Bleach\nMORE TO DO\nQuick actions\nOffers\nWallet\nRewards\nGift Cards\nPackages\nHome\nExplore\nBookings\nMy Salon"
+    },
+    {
+      "label": "03-booking-services",
+      "url": "/business/aura-salon-jubilee-hills-branch-hyd/book",
+      "text": "Book appointment\nAura Salon Group · Road 36\nBook your visit\n\nAura Salon Group · Road 36 · New salon\n\n1\nServices\n2\nStaff\n3\nTime\n4\nReview\nChoose a service\nTop recommendations for you\nFace & Neck Bleach\nRecommended\n₹450\n20 min\nBleach service · 20 min visit\n14 professionals available\nF\nView & add\nFoot Bleach\nRecommended\n₹400\n25 min\nBleach service · 25 min visit\n14 professionals available\nF\nView & add\nFull Back Bleach\nRecommended\n₹800\n45 min\nBleach service · 45 min visit\n14 professionals available\nF\nView & add\nBLEACH\n16\nFace & Neck Bleach\n₹450\n20 min\nBleach service · 20 min visit\n14 professionals available\nF\nView & add\nFoot Bleach\n₹400\n25 min\nBleach service · 25 min visit\n14 professionals available\nF\nView & add\nFull Back Bleach\n₹800\n45 min\nBleach service · 45 min visit\n14 professionals available\nF\nView & add\nFull Body Bleach\n₹3,500\n60 min\nBleach service · 60 min visit\n14 professionals available\nF\nView & add\nFull Fronts Bleach\n₹800\n40 min\nBleach service · 40 min visit\n14 professionals available\nF\nView & add\nFull Hand Bleach\n₹800\n30 min\nBleach service · 30 min visit\n14 professionals available\nF\nView & add\nFull Legs Bleach\n₹800\n40 min\nBleach service · 40 min visit\n14 professionals available\nF\nView & add\nHalf Back Bleach\nExtended visit\n₹450\n300 min\nBleach service · 300 min visit\n14 professionals available\nH\nView & add\nHalf Front Bleach\n₹450\n30 min\nBleach service · 30 min visit\n14 professionals available\nH\nView & add\nHalf Hand Bleach\n₹450\n30 min\nBleach service · 30 min visit\n14 professionals available\nH\nView & add\nHalf Legs Bleach\n₹450\n30 min\nBleach service · 30 min visit\n14 professi"
+    },
+    {
+      "label": "04-service-added",
+      "url": "/business/aura-salon-jubilee-hills-branch-hyd/book",
+      "text": "Book appointment\nAura Salon Group · Road 36\nBook your visit\n\nAura Salon Group · Road 36 · New salon\n\n1\nServices\n2\nStaff\n3\nTime\n4\nReview\nChoose a service\nTop recommendations for you\nFace & Neck Bleach\nRecommended\n₹450\n20 min\nBleach service · 20 min visit\n14 professionals available\nF\nAdded\nFoot Bleach\nRecommended\n₹400\n25 min\nBleach service · 25 min visit\n14 professionals available\nF\nView & add\nFull Back Bleach\nRecommended\n₹800\n45 min\nBleach service · 45 min visit\n14 professionals available\nF\nView & add\nBLEACH\n16\nFace & Neck Bleach\n₹450\n20 min\nBleach service · 20 min visit\n14 professionals available\nF\nAdded\nFoot Bleach\n₹400\n25 min\nBleach service · 25 min visit\n14 professionals available\nF\nView & add\nFull Back Bleach\n₹800\n45 min\nBleach service · 45 min visit\n14 professionals available\nF\nView & add\nFull Body Bleach\n₹3,500\n60 min\nBleach service · 60 min visit\n14 professionals available\nF\nView & add\nFull Fronts Bleach\n₹800\n40 min\nBleach service · 40 min visit\n14 professionals available\nF\nView & add\nFull Hand Bleach\n₹800\n30 min\nBleach service · 30 min visit\n14 professionals available\nF\nView & add\nFull Legs Bleach\n₹800\n40 min\nBleach service · 40 min visit\n14 professionals available\nF\nView & add\nHalf Back Bleach\nExtended visit\n₹450\n300 min\nBleach service · 300 min visit\n14 professionals available\nH\nView & add\nHalf Front Bleach\n₹450\n30 min\nBleach service · 30 min visit\n14 professionals available\nH\nView & add\nHalf Hand Bleach\n₹450\n30 min\nBleach service · 30 min visit\n14 professionals available\nH\nView & add\nHalf Legs Bleach\n₹450\n30 min\nBleach service · 30 min visit\n14 professionals avai"
+    },
+    {
+      "label": "05-staff",
+      "url": "/business/aura-salon-jubilee-hills-branch-hyd/book",
+      "text": "Book appointment\nAura Salon Group · Road 36\nBook your visit\n\nAura Salon Group · Road 36 · New salon\n\nServices\n2\nStaff\n3\nTime\n4\nReview\nChoose professionals\nBest available\nChoose manually\n\nWe'll assign qualified professionals and find the earliest continuous appointment.\n\n1\nFace & Neck Bleach\n₹450 · 20 min · Best available\nBest available\n\nBest available for all 1 service\n\n1 service\n20 min\nCONTINUE"
+    },
+    {
+      "label": "06-time",
+      "url": "/business/aura-salon-jubilee-hills-branch-hyd/book",
+      "text": "Book appointment\nAura Salon Group · Road 36\nBook your visit\n\nAura Salon Group · Road 36 · New salon\n\nServices\nStaff\n3\nTime\n4\nReview\nPick date and time\n1 service · 20 min appointment\nSingle service appointment\nAugust 2026\nSat\n29\nAug\nSun\n30\nAug\nMon\n31\nAug\nTue\n1\nSep\nWed\n2\nSep\nThu\n3\nSep\nFri\n4\nSep\nSat\n5\nSep\nSun\n6\nSep\nMon\n7\nSep\nTue\n8\nSep\nWed\n9\nSep\nThu\n10\nSep\nFri\n11\nSep\nSat\n12\nSep\nSun\n13\nSep\nMon\n14\nSep\nTue\n15\nSep\nWed\n16\nSep\nThu\n17\nSep\nFri\n18\nSep\nSat\n19\nSep\nSun\n20\nSep\nMon\n21\nSep\nTue\n22\nSep\nWed\n23\nSep\nThu\n24\nSep\nFri\n25\nSep\nSat\n26\nSep\nSun\n27\nSep\nMon\n28\nSep\nTue\n29\nSep\nWed\n30\nSep\nThu\n1\nOct\nFri\n2\nOct\nSat\n3\nOct\nSun\n4\nOct\nMon\n5\nOct\nTue\n6\nOct\nWed\n7\nOct\nThu\n8\nOct\nFri\n9\nOct\nSat\n10\nOct\nSun\n11\nOct\nMon\n12\nOct\nTue\n13\nOct\nWed\n14\nOct\nThu\n15\nOct\nFri\n16\nOct\nSat\n17\nOct\nSun\n18\nOct\nMon\n19\nOct\nTue\n20\nOct\nWed\n21\nOct\nThu\n22\nOct\nFri\n23\nOct\nSat\n24\nOct\nSun\n25\nOct\nMon\n26\nOct\nTue\n27\nOct\nWed\n28\nOct\nThu\n29\nOct\nFri\n30\nOct\nAvailable\nFilling fast\nUnavailable\nNext available\nThis week\nAvailable start times\nTimes shown are arrival/start times for your visit\nEvening\n5:00 PM\n5:30 PM\n6:00 PM\n6:30 PM\n7:00 PM\n7:30 PM\n1 service\n20 min\nCONTINUE"
+    },
+    {
+      "label": "07-slot-selected",
+      "url": "/business/aura-salon-jubilee-hills-branch-hyd/book",
+      "text": "Book appointment\nAura Salon Group · Road 36\nBook your visit\n\nAura Salon Group · Road 36 · New salon\n\nBooking data unavailable\n\nRoute not found: POST /api/v1/customer/slot-holds\n\nRETRY\nServices\nStaff\n3\nTime\n4\nReview\nPick date and time\n1 service · 20 min appointment\nSingle service appointment\nAugust 2026\nSat\n29\nAug\nSun\n30\nAug\nMon\n31\nAug\nTue\n1\nSep\nWed\n2\nSep\nThu\n3\nSep\nFri\n4\nSep\nSat\n5\nSep\nSun\n6\nSep\nMon\n7\nSep\nTue\n8\nSep\nWed\n9\nSep\nThu\n10\nSep\nFri\n11\nSep\nSat\n12\nSep\nSun\n13\nSep\nMon\n14\nSep\nTue\n15\nSep\nWed\n16\nSep\nThu\n17\nSep\nFri\n18\nSep\nSat\n19\nSep\nSun\n20\nSep\nMon\n21\nSep\nTue\n22\nSep\nWed\n23\nSep\nThu\n24\nSep\nFri\n25\nSep\nSat\n26\nSep\nSun\n27\nSep\nMon\n28\nSep\nTue\n29\nSep\nWed\n30\nSep\nThu\n1\nOct\nFri\n2\nOct\nSat\n3\nOct\nSun\n4\nOct\nMon\n5\nOct\nTue\n6\nOct\nWed\n7\nOct\nThu\n8\nOct\nFri\n9\nOct\nSat\n10\nOct\nSun\n11\nOct\nMon\n12\nOct\nTue\n13\nOct\nWed\n14\nOct\nThu\n15\nOct\nFri\n16\nOct\nSat\n17\nOct\nSun\n18\nOct\nMon\n19\nOct\nTue\n20\nOct\nWed\n21\nOct\nThu\n22\nOct\nFri\n23\nOct\nSat\n24\nOct\nSun\n25\nOct\nMon\n26\nOct\nTue\n27\nOct\nWed\n28\nOct\nThu\n29\nOct\nFri\n30\nOct\nAvailable\nFilling fast\nUnavailable\nNext available\nThis week\nCOMPLETE VISIT TIMELINE\n5:00 PM–5:20 PM\nSequence total: 20 min (includes preparation/buffer where needed)\n⏱️ Slot reserved: 04:59\n5:00 PM–5:20 PM\nFace & Neck Bleach\nAny professional · 20 min\nAvailable start times\nTimes shown are arrival/start times for your visit\nEvening\n5:00 PM\n5:30 PM\n6:00 PM\n6:30 PM\n7:00 PM\n7:30 PM\nYOUR SELECTED SERVICES & VISIT TIMELINE\n1. Face & Neck Bleach\n5:00 PM · Any professional\n1 service\n20 min\nCONTINUE"
+    },
+    {
+      "label": "08-summary",
+      "url": "/business/aura-salon-jubilee-hills-branch-hyd/book",
+      "text": "Book appointment\nAura Salon Group · Road 36\nBook your visit\n\nAura Salon Group · Road 36 · New salon\n\nBooking data unavailable\n\nRoute not found: POST /api/v1/customer/slot-holds\n\nRETRY\nServices\nStaff\nTime\n4\nReview\nReview & confirm booking\nA\nAura Salon Group\nRoad 36, Jubilee Hills\nNew salon\nSelected services (1)\nEdit\n1\nFace & Neck Bleach\nProfessional: Any professional\n20 min · ₹450\nAssigned professionals\nEdit\nFace & Neck Bleach: Any professional\nDate & visit schedule\nEdit\nSat, 29 Aug\n· Visit Window: 5:00 PM–5:20 PM\n1\n5:00 PM–5:20 PM\nFace & Neck Bleach\nAny professional · 20 min\nCustomer notes & requests (optional)\nBenefits & coupons\nApply membership or package benefits\nApply\nApply\nCancellation Policy\n\nFree cancellation up to 2 hours before appointment. View policy\n\nRescheduling Policy\n\nFree rescheduling available up to 1 hour before start time.\n\nPrice summary\nService subtotal\n₹450\nTaxes & fees\n₹0\nOnline deposit required\n₹0\nTotal payable at salon\nNo online payment required\n₹450 payable at salon\n\n₹450 payable at salon · No online payment required\n\n1 service\n20 min\nCONFIRM BOOKING"
+    },
+    {
+      "label": "09-success",
+      "url": "/booking/success",
+      "text": "BOOKING CONFIRMED\n\nYou're booked\n\n1 service at Road 36 is confirmed. Keep this reference handy for check-in.\n\nREFERENCE\nBooking #appt_16a938fe-7\nARRIVAL\n5:00 PM – 5:20 PM\nNEXT STEP\nPay at salon\nSERVICE\nFace & Neck Bleach\nwith Any professional · 20 min\nTime\n5:00 PM – 5:20 PM\nAddress\nRoad 36, Jubilee Hills\nReference\nBooking #appt_16a938fe-7\nCopy\nPAYMENT\n₹450 due at salon\nNo online charge taken. Pay after your visit.\nCANCELLATION\nFree until appointment time\nManage changes from booking details.\nView booking\nDirections\nAdd to calendar\nCopy reference\nBook another service\nHome"
+    },
+    {
+      "label": "10-bookings-list",
+      "url": "/tabs/bookings",
+      "text": "My bookings\nSupport\nUPCOMING\nPAST\nCANCELLED\nTODAY · SAT, 29 AUG\n1 appointment\nAUG\n29\nFace & Neck Bleach\n\nAura Salon Group\n\nSat, 29 Aug · 5:00 PM\nAftab Ahmed · 20 min\nRoad 36, Jubilee Hills\nConfirmed\nWED, 2 SEPT\n1 appointment\nSEP\n2\nFull Back Bleach\n\nAura Salon Group\n\nWed, 2 Sept · 10:30 AM\nAftab Ahmed · 45 min\nRoad 36, Jubilee Hills\nConfirmed\nHome\nExplore\nBookings\nMy Salon"
+    },
+    {
+      "label": "11-booking-detail",
+      "url": "/tabs/bookings",
+      "text": "My bookings\nSupport\nUPCOMING\nPAST\nCANCELLED\nTODAY · SAT, 29 AUG\n1 appointment\nAUG\n29\nFace & Neck Bleach\n\nAura Salon Group\n\nSat, 29 Aug · 5:00 PM\nAftab Ahmed · 20 min\nRoad 36, Jubilee Hills\nConfirmed\nWED, 2 SEPT\n1 appointment\nSEP\n2\nFull Back Bleach\n\nAura Salon Group\n\nWed, 2 Sept · 10:30 AM\nAftab Ahmed · 45 min\nRoad 36, Jubilee Hills\nConfirmed\nHome\nExplore\nBookings\nMy Salon"
+    },
+    {
+      "label": "12-reschedule-flow",
+      "url": "/tabs/bookings",
+      "text": "My bookings\nSupport\nUPCOMING\nPAST\nCANCELLED\nTODAY · SAT, 29 AUG\n1 appointment\nAUG\n29\nFace & Neck Bleach\n\nAura Salon Group\n\nSat, 29 Aug · 5:00 PM\nAftab Ahmed · 20 min\nRoad 36, Jubilee Hills\nConfirmed\nWED, 2 SEPT\n1 appointment\nSEP\n2\nFull Back Bleach\n\nAura Salon Group\n\nWed, 2 Sept · 10:30 AM\nAftab Ahmed · 45 min\nRoad 36, Jubilee Hills\nConfirmed\nHome\nExplore\nBookings\nMy Salon"
+    },
+    {
+      "label": "13-reschedule-slot",
+      "url": "/tabs/bookings",
+      "text": "My bookings\nSupport\nUPCOMING\nPAST\nCANCELLED\nTODAY · SAT, 29 AUG\n1 appointment\nAUG\n29\nFace & Neck Bleach\n\nAura Salon Group\n\nSat, 29 Aug · 5:00 PM\nAftab Ahmed · 20 min\nRoad 36, Jubilee Hills\nConfirmed\nWED, 2 SEPT\n1 appointment\nSEP\n2\nFull Back Bleach\n\nAura Salon Group\n\nWed, 2 Sept · 10:30 AM\nAftab Ahmed · 45 min\nRoad 36, Jubilee Hills\nConfirmed\nHome\nExplore\nBookings\nMy Salon"
+    },
+    {
+      "label": "14-reschedule-summary",
+      "url": "/tabs/bookings",
+      "text": "My bookings\nSupport\nUPCOMING\nPAST\nCANCELLED\nTODAY · SAT, 29 AUG\n1 appointment\nAUG\n29\nFace & Neck Bleach\n\nAura Salon Group\n\nSat, 29 Aug · 5:00 PM\nAftab Ahmed · 20 min\nRoad 36, Jubilee Hills\nConfirmed\nWED, 2 SEPT\n1 appointment\nSEP\n2\nFull Back Bleach\n\nAura Salon Group\n\nWed, 2 Sept · 10:30 AM\nAftab Ahmed · 45 min\nRoad 36, Jubilee Hills\nConfirmed\nHome\nExplore\nBookings\nMy Salon"
+    },
+    {
+      "label": "15-reschedule-result",
+      "url": "/tabs/bookings",
+      "text": "My bookings\nSupport\nUPCOMING\nPAST\nCANCELLED\nTODAY · SAT, 29 AUG\n1 appointment\nAUG\n29\nFace & Neck Bleach\n\nAura Salon Group\n\nSat, 29 Aug · 5:00 PM\nAftab Ahmed · 20 min\nRoad 36, Jubilee Hills\nConfirmed\nWED, 2 SEPT\n1 appointment\nSEP\n2\nFull Back Bleach\n\nAura Salon Group\n\nWed, 2 Sept · 10:30 AM\nAftab Ahmed · 45 min\nRoad 36, Jubilee Hills\nConfirmed\nHome\nExplore\nBookings\nMy Salon"
+    },
+    {
+      "label": "16-detail-before-cancel",
+      "url": "/tabs/bookings",
+      "text": "My bookings\nSupport\nUPCOMING\nPAST\nCANCELLED\nTODAY · SAT, 29 AUG\n1 appointment\nAUG\n29\nFace & Neck Bleach\n\nAura Salon Group\n\nSat, 29 Aug · 5:00 PM\nAftab Ahmed · 20 min\nRoad 36, Jubilee Hills\nConfirmed\nWED, 2 SEPT\n1 appointment\nSEP\n2\nFull Back Bleach\n\nAura Salon Group\n\nWed, 2 Sept · 10:30 AM\nAftab Ahmed · 45 min\nRoad 36, Jubilee Hills\nConfirmed\nHome\nExplore\nBookings\nMy Salon"
+    },
+    {
+      "label": "17-cancel-sheet",
+      "url": "/tabs/bookings",
+      "text": "My bookings\nSupport\nUPCOMING\nPAST\nCANCELLED\nTODAY · SAT, 29 AUG\n1 appointment\nAUG\n29\nFace & Neck Bleach\n\nAura Salon Group\n\nSat, 29 Aug · 5:00 PM\nAftab Ahmed · 20 min\nRoad 36, Jubilee Hills\nConfirmed\nWED, 2 SEPT\n1 appointment\nSEP\n2\nFull Back Bleach\n\nAura Salon Group\n\nWed, 2 Sept · 10:30 AM\nAftab Ahmed · 45 min\nRoad 36, Jubilee Hills\nConfirmed\nHome\nExplore\nBookings\nMy Salon"
+    },
+    {
+      "label": "18-cancel-result",
+      "url": "/tabs/bookings",
+      "text": "My bookings\nSupport\nUPCOMING\nPAST\nCANCELLED\nTODAY · SAT, 29 AUG\n1 appointment\nAUG\n29\nFace & Neck Bleach\n\nAura Salon Group\n\nSat, 29 Aug · 5:00 PM\nAftab Ahmed · 20 min\nRoad 36, Jubilee Hills\nConfirmed\nWED, 2 SEPT\n1 appointment\nSEP\n2\nFull Back Bleach\n\nAura Salon Group\n\nWed, 2 Sept · 10:30 AM\nAftab Ahmed · 45 min\nRoad 36, Jubilee Hills\nConfirmed\nHome\nExplore\nBookings\nMy Salon"
+    },
+    {
+      "label": "19-book-again-flow",
+      "url": "/tabs/bookings",
+      "text": "My bookings\nSupport\nUPCOMING\nPAST\nCANCELLED\nTODAY · SAT, 29 AUG\n1 appointment\nAUG\n29\nFace & Neck Bleach\n\nAura Salon Group\n\nSat, 29 Aug · 5:00 PM\nAftab Ahmed · 20 min\nRoad 36, Jubilee Hills\nConfirmed\nWED, 2 SEPT\n1 appointment\nSEP\n2\nFull Back Bleach\n\nAura Salon Group\n\nWed, 2 Sept · 10:30 AM\nAftab Ahmed · 45 min\nRoad 36, Jubilee Hills\nConfirmed\nHome\nExplore\nBookings\nMy Salon"
+    }
+  ],
+  "created": {
+    "confirmClicked": true,
+    "slotClicked": true,
+    "mutationCount": 1,
+    "mutations": [
+      {
+        "method": "POST",
+        "url": "http://127.0.0.1:4311/api/v1/customer/bookings"
+      }
+    ]
+  },
+  "detailId": null,
+  "reschedule": {
+    "clicked": false,
+    "slot": false,
+    "confirm": false,
+    "mutationCount": 0,
+    "mutations": []
+  },
+  "cancel": {
+    "clicked": false,
+    "confirm": false,
+    "mutationCount": 0,
+    "mutations": []
+  },
+  "bookAgain": {
+    "clicked": false,
+    "url": "/tabs/bookings"
+  },
+  "salonModeGlance": {
+    "url": "/tabs/home"
+  },
+  "hosts": [
+    "127.0.0.1:4311",
+    "127.0.0.1:4000"
+  ],
+  "prodHits": [],
+  "responseErrors": [
+    {
+      "url": "http://127.0.0.1:4311/api/v1/customer/slot-holds",
+      "status": 404
+    }
+  ],
+  "failures": [
+    {
+      "requestId": "6208.88",
+      "errorText": "net::ERR_BLOCKED_BY_ORB"
+    },
+    {
+      "requestId": "6208.156",
+      "errorText": "net::ERR_BLOCKED_BY_ORB"
+    },
+    {
+      "requestId": "6208.410",
+      "errorText": "net::ERR_BLOCKED_BY_ORB"
+    }
+  ],
+  "consoleErrors": [],
+  "consoleWarnings": [
+    {
+      "type": "warning",
+      "text": "Slot hold failed, using local timer: Error: Route not found: POST /api/v1/customer/slot-holds\n    at http://127.0.0.1:4311/chunk-IC6RUBZJ.js:387:31\n    at Observable2.init [as _subscribe] (http://127.0.0.1:4311/@fs/C:/Users/ADMIN/OneDrive/Desktop/aurasalonpos/customer-app/.angular/cache/20.3.35/aura-customer-app/vite/deps/chunk-YB2C65QT.js?v=59315f1a:2280:29)\n    at Observable2._trySubscribe (http"
+    }
+  ]
+}

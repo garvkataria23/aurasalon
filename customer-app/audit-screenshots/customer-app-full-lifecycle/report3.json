@@ -1,0 +1,90 @@
+{
+  "safeOrigin": "http://127.0.0.1:4311",
+  "steps": [
+    {
+      "label": "30-created",
+      "url": "/booking/success",
+      "text": "BOOKING CONFIRMED\n\nYou're booked\n\n1 service at Road 36 is confirmed. Keep this reference handy for check-in.\n\nREFERENCE\nBooking #appt_f4c39323-f\nARRIVAL\n5:30 PM – 5:50 PM\nNEXT STEP\nPay at salon\nSERVICE\nFace & Neck Bleach\nwith Any professional · 20 min\nTime\n5:30 PM – 5:50 PM\nAddress\nRoad 36, Jubilee Hills\nReference\nBooking #appt_f4c39323-f\nCopy\nPAYMENT\n₹450 due at salon\nNo online charge taken. Pay after your visit.\nCANCELLATION\nFree until appointment time\nManage changes from booking details.\nView booking\nDirections\nAdd to calendar\nCopy reference\nBook another service\nHome"
+    },
+    {
+      "label": "31-detail-created",
+      "url": "/tabs/bookings",
+      "text": "My bookings\nSupport\nUPCOMING\nPAST\nCANCELLED\nTODAY · SAT, 29 AUG\n1 appointment\nAUG\n29\nFace & Neck Bleach\n\nAura Salon Group\n\nSat, 29 Aug · 5:30 PM\nAftab Ahmed · 20 min\nRoad 36, Jubilee Hills\nConfirmed\nWED, 2 SEPT\n1 appointment\nSEP\n2\nFull Back Bleach\n\nAura Salon Group\n\nWed, 2 Sept · 10:30 AM\nAftab Ahmed · 45 min\nRoad 36, Jubilee Hills\nConfirmed\nHome\nExplore\nBookings\nMy Salon"
+    },
+    {
+      "label": "32-reschedule-flow",
+      "url": "/tabs/bookings",
+      "text": "My bookings\nSupport\nUPCOMING\nPAST\nCANCELLED\nTODAY · SAT, 29 AUG\n1 appointment\nAUG\n29\nFace & Neck Bleach\n\nAura Salon Group\n\nSat, 29 Aug · 5:30 PM\nAftab Ahmed · 20 min\nRoad 36, Jubilee Hills\nConfirmed\nWED, 2 SEPT\n1 appointment\nSEP\n2\nFull Back Bleach\n\nAura Salon Group\n\nWed, 2 Sept · 10:30 AM\nAftab Ahmed · 45 min\nRoad 36, Jubilee Hills\nConfirmed\nHome\nExplore\nBookings\nMy Salon"
+    },
+    {
+      "label": "33-reschedule-slot",
+      "url": "/tabs/bookings",
+      "text": "My bookings\nSupport\nUPCOMING\nPAST\nCANCELLED\nTODAY · SAT, 29 AUG\n1 appointment\nAUG\n29\nFace & Neck Bleach\n\nAura Salon Group\n\nSat, 29 Aug · 5:30 PM\nAftab Ahmed · 20 min\nRoad 36, Jubilee Hills\nConfirmed\nWED, 2 SEPT\n1 appointment\nSEP\n2\nFull Back Bleach\n\nAura Salon Group\n\nWed, 2 Sept · 10:30 AM\nAftab Ahmed · 45 min\nRoad 36, Jubilee Hills\nConfirmed\nHome\nExplore\nBookings\nMy Salon"
+    },
+    {
+      "label": "34-reschedule-review",
+      "url": "/tabs/bookings",
+      "text": "My bookings\nSupport\nUPCOMING\nPAST\nCANCELLED\nTODAY · SAT, 29 AUG\n1 appointment\nAUG\n29\nFace & Neck Bleach\n\nAura Salon Group\n\nSat, 29 Aug · 5:30 PM\nAftab Ahmed · 20 min\nRoad 36, Jubilee Hills\nConfirmed\nWED, 2 SEPT\n1 appointment\nSEP\n2\nFull Back Bleach\n\nAura Salon Group\n\nWed, 2 Sept · 10:30 AM\nAftab Ahmed · 45 min\nRoad 36, Jubilee Hills\nConfirmed\nHome\nExplore\nBookings\nMy Salon"
+    },
+    {
+      "label": "35-reschedule-result",
+      "url": "/tabs/bookings",
+      "text": "My bookings\nSupport\nUPCOMING\nPAST\nCANCELLED\nTODAY · SAT, 29 AUG\n1 appointment\nAUG\n29\nFace & Neck Bleach\n\nAura Salon Group\n\nSat, 29 Aug · 5:30 PM\nAftab Ahmed · 20 min\nRoad 36, Jubilee Hills\nConfirmed\nWED, 2 SEPT\n1 appointment\nSEP\n2\nFull Back Bleach\n\nAura Salon Group\n\nWed, 2 Sept · 10:30 AM\nAftab Ahmed · 45 min\nRoad 36, Jubilee Hills\nConfirmed\nHome\nExplore\nBookings\nMy Salon"
+    },
+    {
+      "label": "36-detail-after-reschedule",
+      "url": "/bookings/appt_f4c39323-f",
+      "text": "Booking details\nAura Salon Group\nConfirmed\nFace & Neck Bleach\n\nAura Salon Group\n\nAPPOINTMENT TIME\nSat, 29 Aug · 5:30 PM–5:50 PM\nDuration\n20 min\nProfessional\nAftab Ahmed\nVenue\nRoad 36, Jubilee Hills\nPayment\nPayment due at salon\nBooking reference\nBooking #APPT-F4C39323-F\nCopy\nReschedule\nContact salon\nDirections\nManage booking\nAdd to calendar\nShare booking\nHELP & SALON\nView salon\nRequest support for this booking\nGeneral Help Centre\nCancellation policy\nReview impact before cancelling\n\nCUTOFF\nCheck the salon policy text below for the cutoff.\n\nCANCELLATION FEE\nNo cancellation fee shown for this booking.\n\nREFUND BEFORE CANCELLATION\nNo online payment found, so refund amount is ₹0.\n\nPACKAGE/MEMBERSHIP CREDITS\nNo package or membership credits are linked to this booking.\n\nPolicy: Cancel or reschedule from the app before the branch cutoff time.\n\nCancel booking"
+    },
+    {
+      "label": "37-cancelled-cleanup",
+      "url": "/bookings/appt_f4c39323-f",
+      "text": "Booking details\nAura Salon Group\nThis booking was cancelled.\nCancelled\nFace & Neck Bleach\n\nAura Salon Group\n\nAPPOINTMENT TIME\nSat, 29 Aug · 5:30 PM–5:50 PM\nDuration\n20 min\nProfessional\nAftab Ahmed\nVenue\nRoad 36, Jubilee Hills\nPayment\nPayment due at salon\nBooking reference\nBooking #APPT-F4C39323-F\nCopy\nAdd to calendar\nShare booking\nBook again\n\nReady for another visit? Start a fresh booking with this salon.\n\nRebook\nHELP & SALON\nView salon\nRequest support for this booking\nGeneral Help Centre\nCancellation policy\nCancellation is not available for this booking\n\nCUTOFF\nCheck the salon policy text below for the cutoff.\n\nCANCELLATION FEE\nNo cancellation fee shown for this booking.\n\nREFUND BEFORE CANCELLATION\nNo online payment found, so refund amount is ₹0.\n\nPACKAGE/MEMBERSHIP CREDITS\nNo package or membership credits are linked to this booking.\n\nPolicy: Cancel or reschedule from the app before the branch cutoff time.\n\nAppointment cancelled\n\nFace & Neck Bleach · Aura Salon Group · Sat, 29 Aug · 5:30 PM\n\nNo online payment found, so refund amount is ₹0.\n\nDone"
+    }
+  ],
+  "created": {
+    "slotClicked": true,
+    "confirmClicked": true,
+    "mutationCount": 1,
+    "mutations": [
+      {
+        "method": "POST",
+        "url": "http://127.0.0.1:4311/api/v1/customer/bookings"
+      }
+    ]
+  },
+  "createdUrl": "/booking/success",
+  "createdBookingId": null,
+  "reschedule": {
+    "clicked": false,
+    "slot": false,
+    "confirm": false,
+    "mutationCount": 0,
+    "mutations": []
+  },
+  "rescheduleResultUrl": "/tabs/bookings",
+  "rescheduleResultBody": "My bookings\nSupport\nUPCOMING\nPAST\nCANCELLED\nTODAY · SAT, 29 AUG\n1 appointment\nAUG\n29\nFace & Neck Bleach\n\nAura Salon Group\n\nSat, 29 Aug · 5:30 PM\nAftab Ahmed · 20 min\nRoad 36, Jubilee Hills\nConfirmed\nWED, 2 SEPT\n1 appointment\nSEP\n2\nFull Back Bleach\n\nAura Salon Group\n\nWed, 2 Sept · 10:30 AM\nAftab Ahmed · 45 min\nRoad 36, Jubilee Hills\nConfirmed\nHome\nExplore\nBookings\nMy Salon",
+  "cancel": {
+    "confirm": true,
+    "mutationCount": 1,
+    "mutations": [
+      {
+        "method": "POST",
+        "url": "http://127.0.0.1:4311/api/v1/customer/bookings/appt_f4c39323-f/cancel"
+      }
+    ]
+  },
+  "bookingId": null,
+  "prodHits": [],
+  "hosts": [
+    "127.0.0.1:4311",
+    "127.0.0.1:4000"
+  ],
+  "responseErrors": [
+    {
+      "url": "http://127.0.0.1:4311/api/v1/customer/slot-holds",
+      "status": 404
+    }
+  ],
+  "consoleErrors": []
+}
