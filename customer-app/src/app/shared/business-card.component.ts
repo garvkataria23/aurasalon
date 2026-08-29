@@ -101,8 +101,8 @@ import { MarketplaceService } from "../core/marketplace.service";
       overflow: hidden;
       border: 1px solid var(--border);
       border-radius: var(--radius-lg);
-      background: var(--surface);
-      box-shadow: 0 6px 18px rgba(28, 28, 28, 0.045);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(250, 248, 255, 0.96));
+      box-shadow: 0 10px 26px rgba(76, 58, 150, 0.08), 0 1px 0 rgba(255, 255, 255, 0.78) inset;
       cursor: pointer;
       transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
     }
@@ -152,6 +152,10 @@ import { MarketplaceService } from "../core/marketplace.service";
       content: "";
       background: linear-gradient(180deg, rgba(28, 28, 28, 0.02), rgba(28, 28, 28, 0.28));
       pointer-events: none;
+    }
+
+    .image-fill {
+      transition: transform var(--motion-slow), filter var(--motion-medium);
     }
 
     .business-card:not(.variant-rail):not(.variant-mini-rail) .cover::after,
@@ -455,6 +459,11 @@ import { MarketplaceService } from "../core/marketplace.service";
         transform: translateY(-4px);
         border-color: rgba(124, 99, 223, 0.34);
         box-shadow: var(--shadow-card);
+      }
+
+      .business-card:hover .image-fill {
+        transform: scale(1.035);
+        filter: saturate(1.04) contrast(1.02);
       }
     }
 
@@ -1008,7 +1017,7 @@ import { MarketplaceService } from "../core/marketplace.service";
     }
 
     @media (prefers-reduced-motion: reduce) {
-      .business-card { transition: none; }
+      .business-card, .image-fill { transition: none; }
     }
   `]
 })

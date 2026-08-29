@@ -211,8 +211,8 @@ import { Business } from "../../core/api.types";
       padding: 8px;
       border: 1px solid var(--border);
       border-radius: 18px;
-      background: var(--surface);
-      box-shadow: 0 12px 30px rgba(28, 28, 28, 0.08);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(250, 248, 255, 0.96));
+      box-shadow: var(--shadow-soft);
     }
 
     .explore-search-bar {
@@ -231,7 +231,7 @@ import { Business } from "../../core/api.types";
       font-weight: 800;
       text-align: left;
       cursor: pointer;
-      transition: border-color 160ms ease, box-shadow 160ms ease;
+      transition: transform var(--motion-fast), border-color var(--motion-fast), box-shadow var(--motion-fast), background var(--motion-fast);
     }
 
     .explore-search-bar .search-placeholder {
@@ -382,12 +382,12 @@ import { Business } from "../../core/api.types";
       border-radius: 12px;
       color: var(--text);
       background: var(--surface);
-      box-shadow: none;
+      box-shadow: 0 8px 20px rgba(76, 58, 150, 0.06);
       font-size: 0.72rem;
       font-family: inherit;
       font-weight: 900;
       text-decoration: none;
-      transition: border-color 160ms ease;
+      transition: transform var(--motion-fast), border-color var(--motion-fast), box-shadow var(--motion-fast), background var(--motion-fast);
       white-space: normal;
       cursor: pointer;
     }
@@ -509,7 +509,9 @@ import { Business } from "../../core/api.types";
       border-radius: 17px;
       color: var(--text);
       background: var(--surface);
+      box-shadow: 0 10px 24px rgba(76, 58, 150, 0.07);
       text-decoration: none;
+      transition: transform var(--motion-fast), border-color var(--motion-fast), box-shadow var(--motion-fast);
     }
 
     .service-grid > a:nth-child(n + 5) { display: none; }
@@ -566,7 +568,7 @@ import { Business } from "../../core/api.types";
       .explore-search-bar:hover { border-color: rgba(124, 99, 223, 0.4); box-shadow: 0 12px 28px rgba(28, 28, 28, 0.09); }
       .chip:hover { border-color: rgba(124, 99, 223, 0.4); background: var(--primary-soft); }
       .chip.active:hover { border-color: var(--primary); background: var(--primary); }
-      .category-card:hover { border-color: rgba(124, 99, 223, 0.4); }
+      .category-card:hover, .service-grid > a:hover { transform: translateY(-2px); border-color: rgba(124, 99, 223, 0.4); box-shadow: var(--shadow-soft); }
       .open-banner:hover { border-color: rgba(124, 99, 223, 0.4); box-shadow: 0 14px 30px rgba(28, 28, 28, 0.09); }
       .concierge-card:hover { border-color: rgba(124, 99, 223, 0.4); box-shadow: 0 16px 34px rgba(28, 28, 28, 0.11); }
     }

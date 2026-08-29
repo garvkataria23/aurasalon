@@ -2577,9 +2577,10 @@ const hubConfigs: Record<string, HubConfig> = {
       align-items: center;
       gap: 16px;
       padding: clamp(18px, 3vw, 26px);
-      border: 1px dashed var(--border);
+      border: 1px solid rgba(124, 99, 223, 0.18);
       border-radius: var(--radius-lg);
-      background: var(--surface);
+      background: radial-gradient(circle at 0% 0%, rgba(124, 99, 223, 0.1), transparent 34%), var(--surface);
+      box-shadow: var(--shadow-soft);
     }
 
     .wallet-zero-icon {
@@ -2809,8 +2810,8 @@ const hubConfigs: Record<string, HubConfig> = {
       min-width: 0;
       border: 1px solid var(--border);
       border-radius: var(--radius-lg);
-      background: var(--surface);
-      box-shadow: 0 14px 36px rgba(28, 28, 28, 0.08);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(250, 248, 255, 0.96));
+      box-shadow: var(--shadow-soft);
     }
 
     .wallet-activity {

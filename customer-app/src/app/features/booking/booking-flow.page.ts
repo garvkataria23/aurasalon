@@ -1072,7 +1072,7 @@ type BookingFlowItem = {
     .booking-cta { width: min(980px, calc(100% - 24px)); margin: 0 auto; }
     .booking-cta.sticky-cta { bottom: calc(8px + env(safe-area-inset-bottom)); }
       .booking-cta.sticky-cta.salon-mode-flow { bottom: calc(64px + env(safe-area-inset-bottom)); }
-    .booking-cta .bottom-action-card { min-height: 56px; display: grid; grid-template-columns: 1fr; grid-template-rows: auto; align-items: center; gap: 0; padding: 8px 10px calc(8px + env(safe-area-inset-bottom)); overflow: hidden; border: 1px solid rgba(15, 23, 42, 0.1); border-radius: 18px; background: #FFFFFF; box-shadow: 0 10px 24px rgba(15, 23, 42, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.96); backdrop-filter: blur(18px); }
+    .booking-cta .bottom-action-card { min-height: 56px; display: grid; grid-template-columns: 1fr; grid-template-rows: auto; align-items: center; gap: 0; padding: 8px 10px calc(8px + env(safe-area-inset-bottom)); overflow: hidden; border: 1px solid rgba(124, 99, 223, 0.18); border-radius: 18px; background: rgba(255, 255, 255, 0.94); box-shadow: 0 18px 42px rgba(76, 58, 150, 0.2), 0 8px 18px rgba(15, 23, 42, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.96); backdrop-filter: blur(18px); }
     .booking-cta.salon-mode-flow .bottom-action-card { width: min(100%, 360px); margin: 0 auto; min-height: 56px; grid-template-rows: auto; padding: 8px 10px; overflow: visible; }
     .assign-footer-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px; }
     .assign-status { margin: 0; color: var(--muted); font-size: 0.84rem; font-weight: 850; letter-spacing: 0.02em; }
@@ -1181,10 +1181,10 @@ type BookingFlowItem = {
     .selected-staff-card .selected-slot-note { color: var(--primary); }
     .date-row { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(98px, 1fr); gap: 8px; overflow-x: auto; padding: 2px 1px 12px; overscroll-behavior-x: contain; scroll-snap-type: x proximity; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
     .date-row::-webkit-scrollbar { display: none; }
-    .date-card, .slot { border: 1px solid var(--border); border-radius: 18px; background: var(--surface); color: var(--text); font-weight: 900; }
+    .date-card, .slot { border: 1px solid var(--border); border-radius: 18px; background: var(--surface); color: var(--text); font-weight: 900; transition: transform var(--motion-fast), border-color var(--motion-fast), box-shadow var(--motion-fast), background var(--motion-fast); }
     .date-card:focus-visible, .slot:focus-visible, .shortcut-chip:focus-visible, .month-nav-btn:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
     .date-card { position: relative; display: grid; gap: 4px; justify-items: center; min-height: 78px; padding: 12px 10px 10px; overflow: hidden; scroll-snap-align: start; }
-    .date-card.selected { color: #FFFFFF; border-color: transparent; background: var(--primary); box-shadow: 0 10px 24px rgba(124, 99, 223, 0.16); }
+    .date-card.selected { color: #FFFFFF; border-color: transparent; background: linear-gradient(145deg, var(--brand-600), var(--primary)); box-shadow: 0 12px 28px rgba(124, 99, 223, 0.24); }
     .date-card.selected span { color: rgba(255,255,255,.82); }
     .date-card.current:not(.selected) { border-color: rgba(124, 99, 223, 0.42); background: var(--primary-soft); }
     .date-card:disabled { color: var(--muted); border-color: var(--border); background: var(--surface-soft); opacity: .58; box-shadow: none; }
@@ -1211,10 +1211,10 @@ type BookingFlowItem = {
     .booking-flow-skeleton { min-height: 320px; display: grid; align-content: start; gap: 14px; }
     .skeleton-slot-group { min-height: 158px; }
     .slot-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
-    .slot { min-height: 46px; display: inline-flex; flex-direction: column; gap: 4px; align-items: center; justify-content: center; padding: 7px 8px; border-color: var(--border); color: var(--text); background: var(--surface); font-size: 0.9rem; line-height: 1; transition: none; }
-    .slot:not(:disabled):not(.selected):hover, .slot:not(:disabled):not(.selected):focus-visible { border-color: rgba(124, 99, 223, 0.42); }
+    .slot { min-height: 46px; display: inline-flex; flex-direction: column; gap: 4px; align-items: center; justify-content: center; padding: 7px 8px; border-color: var(--border); color: var(--text); background: var(--surface); font-size: 0.9rem; line-height: 1; }
+    .slot:not(:disabled):not(.selected):hover, .slot:not(:disabled):not(.selected):focus-visible { transform: translateY(-1px); border-color: rgba(124, 99, 223, 0.42); box-shadow: 0 10px 22px rgba(76, 58, 150, 0.1); }
     .slot.skeleton-slot { min-height: 45px; border-color: transparent; background: linear-gradient(90deg, rgba(232, 232, 232, 0.92), rgba(244, 244, 242, 0.98), rgba(232, 232, 232, 0.92)); background-size: 220% 100%; animation: booking-skeleton 1.15s ease-in-out infinite; pointer-events: none; }
-    .slot.selected { position: relative; color: #FFFFFF; border-color: transparent; background: var(--primary); box-shadow: 0 14px 28px rgba(124, 99, 223, 0.22); text-decoration: none; opacity: 1; }
+    .slot.selected { position: relative; color: #FFFFFF; border-color: transparent; background: linear-gradient(145deg, var(--brand-600), var(--primary)); box-shadow: 0 14px 28px rgba(124, 99, 223, 0.24); text-decoration: none; opacity: 1; }
     .slot.current:not(.selected) { border-color: rgba(124, 99, 223, 0.42); background: var(--primary-soft); }
     .slot.selected small { color: #FFFFFF; background: rgba(255, 255, 255, 0.22); }
     .slot.selected::after { content: none; }
@@ -1421,12 +1421,13 @@ type BookingFlowItem = {
       padding: 14px 16px;
       border: 1px solid var(--border);
       border-radius: 20px;
-      background: var(--surface);
-      box-shadow: 0 4px 14px rgba(28, 28, 28, 0.04);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(250, 248, 255, 0.96));
+      box-shadow: 0 10px 24px rgba(76, 58, 150, 0.07);
       cursor: pointer;
       box-sizing: border-box;
       width: 100%;
       text-align: left;
+      transition: transform var(--motion-fast), border-color var(--motion-fast), box-shadow var(--motion-fast), background var(--motion-fast);
     }
     .salon-service-item.is-picked, .salon-service-item.selected {
       border-color: rgba(124, 99, 223, 0.5);
@@ -1510,6 +1511,10 @@ type BookingFlowItem = {
       box-shadow: none;
     }
     .salon-service-add:hover, .salon-service-add:focus-visible { outline: 2px solid rgba(124, 99, 223, 0.4); outline-offset: 2px; }
+
+    @media (hover: hover) and (pointer: fine) {
+      .salon-service-item:hover { transform: translateY(-2px); border-color: rgba(124, 99, 223, 0.34); box-shadow: var(--shadow-soft); }
+    }
     .service-details { display: grid; gap: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
     .service-details p { margin: 0; color: var(--muted); font-size: 0.85rem; line-height: 1.45; }
     .service-details dl { display: grid; gap: 2px; margin: 0; }
@@ -1633,7 +1638,7 @@ type BookingFlowItem = {
     
     .date-row.seven-days-grid { display: flex; gap: 6px; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; scroll-behavior: smooth; scrollbar-width: none; touch-action: pan-x pan-y; user-select: none; -webkit-overflow-scrolling: touch; }
     .date-row.seven-days-grid::-webkit-scrollbar { display: none; }
-    .date-card { position: relative; display: grid; grid-template-rows: 8px 16px 16px 16px auto; gap: 0; justify-items: center; align-content: center; min-height: 74px; padding: 7px 3px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); color: var(--text); font-weight: 900; text-align: center; cursor: pointer; }
+    .date-card { position: relative; display: grid; grid-template-rows: 8px 16px 16px 16px auto; gap: 0; justify-items: center; align-content: center; min-height: 74px; padding: 7px 3px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); color: var(--text); font-weight: 900; text-align: center; cursor: pointer; transition: transform var(--motion-fast), border-color var(--motion-fast), box-shadow var(--motion-fast), background var(--motion-fast); }
     .date-row.seven-days-grid .date-card { flex: 0 0 calc((100% - 36px) / 7); scroll-snap-align: start; }
     .date-card strong { font-size: 0.82rem; line-height: 16px; }
     .date-card span { color: var(--muted); line-height: 16px; }
@@ -1644,7 +1649,7 @@ type BookingFlowItem = {
     .date-dot.many { background: #10B981; }
     .date-dot.partial { background: #F59E0B; }
     .date-dot.full { background: #EF4444; }
-    .date-card.selected { color: #FFFFFF; border-color: transparent; background: var(--primary); box-shadow: 0 8px 20px rgba(124, 99, 223, 0.28); }
+    .date-card.selected { color: #FFFFFF; border-color: transparent; background: linear-gradient(145deg, var(--brand-600), var(--primary)); box-shadow: 0 10px 24px rgba(124, 99, 223, 0.28); }
     .date-card.selected span, .date-card.selected .status-text { color: rgba(255, 255, 255, 0.88); }
     .date-card.selected .date-dot { background: #FFFFFF; }
     .date-card:disabled { color: var(--muted); border-color: var(--border); background: var(--surface-soft); cursor: not-allowed; opacity: 0.58; box-shadow: none; }
@@ -1793,7 +1798,7 @@ type BookingFlowItem = {
       .assign-mode-toggle button { font-size: 0.82rem; }
     }
     @media (prefers-reduced-motion: reduce) {
-      .skeleton-line, .slot.skeleton-slot, .group-header ion-icon, .service-assign-state > ion-icon { animation: none; transition: none; }
+      .skeleton-line, .slot.skeleton-slot, .group-header ion-icon, .service-assign-state > ion-icon, .date-card, .slot, .salon-service-item { animation: none; transition: none; }
     }
     @keyframes booking-skeleton { from { background-position: 120% 0; } to { background-position: -120% 0; } }
     @keyframes button-spin { to { transform: rotate(360deg); } }

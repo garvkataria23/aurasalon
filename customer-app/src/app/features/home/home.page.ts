@@ -834,6 +834,7 @@ interface ConsultationChatMessage {
     .search-panel.compact {
       padding: 6px;
       border-radius: 22px;
+      border-color: rgba(124, 99, 223, 0.18);
       box-shadow: 0 6px 18px rgba(28, 28, 28, 0.05);
     }
 
@@ -857,6 +858,11 @@ interface ConsultationChatMessage {
       font-size: 0.86rem;
       font-weight: 800;
       text-align: left;
+      transition: transform var(--motion-fast), box-shadow var(--motion-fast), background var(--motion-fast);
+    }
+
+    .home-search-button:focus-visible {
+      box-shadow: 0 0 0 4px rgba(124, 99, 223, 0.16);
     }
 
     .home-search-button ion-icon {
@@ -1075,7 +1081,7 @@ interface ConsultationChatMessage {
 
     .customer-quick-actions span {
       color: var(--text);
-      font-size: 0.28rem;
+      font-size: 0.66rem;
       font-weight: 950;
       line-height: 1.1;
       overflow: hidden;
@@ -1924,6 +1930,11 @@ interface ConsultationChatMessage {
       align-items: center;
       padding: clamp(22px, 4vw, 42px);
       overflow: visible;
+      border-color: rgba(124, 99, 223, 0.16);
+      background:
+        radial-gradient(circle at 10% 0%, rgba(124, 99, 223, 0.14), transparent 34%),
+        linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(247, 244, 253, 0.94));
+      box-shadow: 0 24px 58px rgba(76, 58, 150, 0.16), 0 10px 24px rgba(28, 28, 28, 0.08);
     }
 
     .dashboard-hero .hero-copy {
@@ -1988,8 +1999,8 @@ interface ConsultationChatMessage {
       border: 1px solid rgba(255, 255, 255, 0.18);
       border-radius: 26px;
       color: #fff;
-      background: linear-gradient(145deg, var(--brand-800), var(--primary));
-      box-shadow: 0 24px 54px rgba(28, 28, 28, 0.22);
+      background: radial-gradient(circle at 12% 0%, rgba(255, 255, 255, 0.26), transparent 34%), linear-gradient(145deg, var(--brand-800), var(--primary));
+      box-shadow: 0 24px 54px rgba(76, 58, 150, 0.28), 0 10px 22px rgba(28, 28, 28, 0.16);
     }
 
     .appointment-date {
@@ -2169,6 +2180,9 @@ interface ConsultationChatMessage {
         grid-template-columns: minmax(0, 1fr);
         gap: 8px;
         padding: 0;
+        border-color: transparent;
+        background: transparent;
+        box-shadow: none;
       }
       .dashboard-hero .eyebrow,
       .dashboard-hero .page-title { display: none; }
@@ -2339,6 +2353,7 @@ interface ConsultationChatMessage {
         min-height: 58px;
         padding: 7px 3px 6px;
         border-radius: 11px;
+        box-shadow: 0 8px 18px rgba(76, 58, 150, 0.08);
       }
       .home-page .lower-actions .customer-quick-actions ion-icon {
         width: 17px;
