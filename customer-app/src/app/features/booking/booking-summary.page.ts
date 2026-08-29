@@ -254,15 +254,31 @@ import { MarketplaceService } from "../../core/marketplace.service";
   `]
 })
 export class BookingSummaryPage {
-  readonly booking = computed(() => this.marketplace.latestBooking());
+  readonly booking = computed(() => this.recalled ?? this.marketplace.latestBooking());
+  private recalled: Booking | null = null;
+
+  constructor(private readonly marketplace: MarketplaceService) {
+    addIcons({ calendarOutline, checkmarkDoneOutline, shareSocialOutline, ticketOutline });
+    this.recalled = this.readPendingBooking();
+  }
+
+  /** Survive a refresh of /booking/summary by recalling a pending confirmation snapshot. */
+  private readPendingBooking(): Booking | null {
+    try {
+      const raw = sessionStorage.getItem("aura_pending_booking");
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as Booking;
+      if (!parsed || (!parsed.id && !parsed.reference && !parsed.serviceName)) return null;
+      return parsed;
+    } catch {
+      return null;
+    }
+  }
   readonly service = computed(() => this.findService(this.booking()));
   readonly servicePricePaise = computed(() => this.moneyField(this.booking(), "subtotalPaise") || this.moneyField(this.booking(), "amountPaise") || this.service()?.pricePaise || 0);
   readonly taxPaise = computed(() => this.moneyField(this.booking(), "taxPaise") || (!this.hasServerTotal() && this.servicePricePaise() > 0 ? Math.round(this.servicePricePaise() * 0.18) : 0));
   readonly totalPaise = computed(() => this.moneyField(this.booking(), "totalPaise") || this.servicePricePaise() + this.taxPaise());
 
-  constructor(private readonly marketplace: MarketplaceService) {
-    addIcons({ calendarOutline, checkmarkDoneOutline, shareSocialOutline, ticketOutline });
-  }
 
   displayTime(booking: Booking): string {
     return booking.displayStartAt || booking.startsAt || booking.startAt || "Time will appear after confirmation";

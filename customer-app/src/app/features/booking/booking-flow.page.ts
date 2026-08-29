@@ -3106,11 +3106,12 @@ async reload() {
   }
 
   /** Builds the full multi-service context passed to the confirmation screen via router state. */
-  private buildSuccessState() {
+  private buildSuccessState(createdBookings: Booking[] = []) {
     const business = this.business();
     const items = this.bookingItems();
     const timeline = this.reviewTimelineItems();
     const lastBooking = this.marketplace.latestBooking();
+    const references = createdBookings.map((booking) => booking.reference || booking.id).filter(Boolean);
     const subtotalPaise = this.selectedServices().reduce((sum, service) => sum + service.pricePaise, 0);
     const finalPaise = Math.max(0, subtotalPaise - this.discountPaise());
     const services = items.map((item) => {
@@ -3140,13 +3141,22 @@ async reload() {
       area: business?.area || "",
       city: business?.city || "",
       address: business?.address || "",
-      reference: lastBooking?.reference || "",
+      reference: references[0] || lastBooking?.reference || "",
+      references,
       status: lastBooking?.status || "confirmed",
       startIso,
       endIso,
       dueLabel: this.money(finalPaise),
       paymentMode: "pay_at_venue"
     };
+  }
+
+  /** Persist a searchable snapshot so the legacy /booking/summary screen can recover after refresh. */
+  private persistPendingSummary(booking: Booking | undefined) {
+    if (!booking) return;
+    try {
+      sessionStorage.setItem("aura_pending_booking", JSON.stringify(booking));
+    } catch { /* session storage unavailable */ }
   }
 
   async confirmBooking() {
@@ -3183,6 +3193,7 @@ async reload() {
     }
     let createdCount = 0;
     const createdBookingIds: string[] = [];
+    const createdBookings: Booking[] = [];
     try {
       for (const item of items) {
         const booking = await this.marketplace.createBooking({
@@ -3197,6 +3208,7 @@ async reload() {
         });
         createdCount += 1;
         createdBookingIds.push(booking.id);
+        createdBookings.push(booking);
       }
 } catch {
       const remaining = items.length - createdCount;
@@ -3220,8 +3232,9 @@ async reload() {
     }
     this.clearPendingIntent();
     this.marketplace.clearBookingDraft();
+    this.persistPendingSummary(createdBookings[createdBookings.length - 1]);
     const successUrl = this.marketplace.salonMode() ? this.marketplace.salonModeUrl("booking", "success") : "/booking/success";
-    const successState = this.buildSuccessState();
+    const successState = this.buildSuccessState(createdBookings);
     try { sessionStorage.setItem("aura_booking_success", JSON.stringify(successState)); } catch { /* session storage unavailable */ }
     this.router.navigateByUrl(successUrl, { state: successState });
     } finally {

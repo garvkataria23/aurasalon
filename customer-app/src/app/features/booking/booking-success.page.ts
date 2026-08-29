@@ -22,6 +22,7 @@ interface SuccessContext {
   statusLabel: string;
   address: string;
   reference: string;
+  references: string[];
   referenceLabel: string;
   visitRange: string;
   dueLabel: string;
@@ -45,6 +46,7 @@ interface SuccessState {
   city?: string;
   address?: string;
   reference?: string;
+  references?: string[];
   status?: string;
   startIso?: string;
   endIso?: string;
@@ -114,7 +116,13 @@ interface SuccessState {
               <div class="ref-row">
                 <dt>Reference</dt>
                 <dd>
-                  <span class="ref-value">{{ ctx.referenceLabel }}</span>
+                  @if (ctx.references.length > 1) {
+                    <span class="ref-value ref-value-multi">
+                      @for (ref of ctx.references; track ref) { <span>#{{ ref }}</span> }
+                    </span>
+                  } @else {
+                    <span class="ref-value">{{ ctx.referenceLabel }}</span>
+                  }
                   <button type="button" class="copy-ref" (click)="copyReference()" [attr.aria-label]="'Copy booking reference'">
                     <ion-icon [name]="copied() ? 'checkmark-outline' : 'copy-outline'" aria-hidden="true"></ion-icon>
                     {{ copied() ? "Copied" : "Copy" }}
@@ -581,7 +589,8 @@ export class BookingSuccessPage {
       const area = effective.area || "";
       const city = effective.city || "";
       const address = effective.address || booking?.address || (area ? `${area}${city ? ", " + city : ""}` : businessName || "Salon address");
-      const reference = effective.reference || booking?.reference || "";
+      const references = this.referencesFrom(effective.references, effective.reference || booking?.reference || booking?.id || "");
+      const reference = references[0] || "";
       const startIso = effective.startIso || services[0]?.startIso || "";
       const endIso = effective.endIso || services[services.length - 1]?.endIso || "";
       const location = area || businessName || "the salon";
@@ -591,6 +600,7 @@ export class BookingSuccessPage {
         statusLabel: this.statusLabel(effective.status || booking?.status || "confirmed"),
         address,
         reference,
+        references,
         referenceLabel: this.referenceLabel(reference),
         visitRange: this.visitRange(startIso, endIso),
         dueLabel: effective.dueLabel || "",
@@ -617,12 +627,14 @@ export class BookingSuccessPage {
       timeLabel: this.formatTime(startIso)
     }];
     const reference = booking.reference || "";
+    const references = this.referencesFrom([], reference || booking.id || "");
     return {
       services,
       title: booking.businessName,
       statusLabel: this.statusLabel(booking.status),
       address: booking.address || booking.businessName || "Salon address",
       reference,
+      references,
       referenceLabel: this.referenceLabel(reference),
       visitRange: this.visitRange(startIso, endIso),
       dueLabel: "",
@@ -663,7 +675,7 @@ export class BookingSuccessPage {
     const ctx = this.display();
     if (!ctx?.reference) return;
     try {
-      await navigator.clipboard.writeText(ctx.reference);
+      await navigator.clipboard.writeText(ctx.references.length > 1 ? ctx.references.join(", ") : ctx.reference);
       this.copied.set(true);
       window.setTimeout(() => this.copied.set(false), 1600);
     } catch {
@@ -704,6 +716,16 @@ export class BookingSuccessPage {
   private referenceLabel(reference: string): string {
     const raw = reference.replace(/^#+/, "").trim();
     return raw ? `Booking #${raw}` : "Booking reference";
+  }
+
+  private referencesFrom(references: string[] | undefined, fallback: string): string[] {
+    const rows = Array.isArray(references) ? references : [];
+    const unique = new Set<string>();
+    [...rows, fallback]
+      .map((value) => String(value || "").replace(/^#+/, "").trim())
+      .filter(Boolean)
+      .forEach((value) => unique.add(value));
+    return [...unique];
   }
 
   private formatTime(value: string): string {
