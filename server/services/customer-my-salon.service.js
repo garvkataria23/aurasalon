@@ -125,7 +125,20 @@ function resolveSalonProfile(tenantId, branchId) {
   if (!row) return null;
 
   const timezone = row.timezone || DEFAULT_TIMEZONE;
-  const hours = json(row.themeConfig?.businessHours, {});
+  const profile = tableExists("business_notification_profiles")
+    ? db
+        .prepare(
+          `SELECT business_hours_json, social_links_json
+           FROM business_notification_profiles
+           WHERE tenant_id = @tenantId AND (branch_id = @branchId OR branch_id = '')
+           ORDER BY CASE WHEN branch_id = @branchId THEN 0 ELSE 1 END
+           LIMIT 1`
+        )
+        .get({ tenantId, branchId }) || {}
+    : {};
+  const profileHours = json(profile.business_hours_json, {});
+  const themeHours = json(row.themeConfig, {}).businessHours || {};
+  const hours = Object.keys(profileHours).length ? profileHours : themeHours;
 
   return {
     tenantId: row.tenantId,
