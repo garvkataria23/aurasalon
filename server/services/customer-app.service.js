@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { columnsFor, db, insertRow, tableHasColumn, updateRow } from "../db.js";
-import { badRequest, notFound, unauthorized } from "../utils/app-error.js";
+import { badRequest, conflict, notFound, unauthorized } from "../utils/app-error.js";
 import { customerMarketplaceService } from "./customer-marketplace.service.js";
 import { customerNotificationService } from "./customer-notification.service.js";
 
@@ -222,6 +222,40 @@ function addMinutesIso(startAt, minutes) {
   return date.toISOString();
 }
 
+function utcIso(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) throw badRequest("Invalid slot time");
+  return date.toISOString();
+}
+
+function overlapConflict({ branchId, staffId, startAt, endAt, excludeHoldId = "" }) {
+  const startMs = new Date(startAt).getTime();
+  const endMs = new Date(endAt).getTime();
+  if (Number.isNaN(startMs) || Number.isNaN(endMs)) return null;
+  const booked = db.prepare(
+    "SELECT id, startAt, endAt FROM appointments WHERE branchId = @branchId AND staffId = @staffId AND status = 'booked'"
+  ).all({ branchId, staffId });
+  const holder = booked.find((row) => {
+    const rowStart = new Date(row.startAt).getTime();
+    const rowEnd = new Date(row.endAt || row.startAt).getTime();
+    if (Number.isNaN(rowStart) || Number.isNaN(rowEnd)) return false;
+    return rowStart < endMs && rowEnd > startMs;
+  });
+  if (holder) return { type: "booked", id: holder.id };
+
+  const holds = db.prepare(
+    "SELECT id, startTime, endTime FROM slot_reservations WHERE branchId = @branchId AND staffId = @staffId AND status = 'holding' AND id != COALESCE(@excludeHoldId, '')"
+  ).all({ branchId, staffId, excludeHoldId });
+  const held = holds.find((row) => {
+    const holdStart = new Date(row.startTime).getTime();
+    const holdEnd = new Date(row.endTime || row.startTime).getTime();
+    if (Number.isNaN(holdStart) || Number.isNaN(holdEnd)) return false;
+    return holdStart < endMs && holdEnd > startMs;
+  });
+  if (held) return { type: "hold", id: held.id };
+  return null;
+}
+
 function createBooking(access, payload = {}) {
   client(access);
   const business = customerMarketplaceService.business(payload.businessSlug || payload.businessId || "");
@@ -231,20 +265,50 @@ function createBooking(access, payload = {}) {
   const person = staff.find((item) => item.id === payload.staffId) || staff[0];
   if (!person) throw badRequest("No bookable professional is available for this branch");
   if (!payload.startAt) throw badRequest("startAt is required");
+
+  const branchId = business.branchId || business.id;
+  const startAt = utcIso(payload.startAt);
+  const endAt = addMinutesIso(startAt, service.durationMinutes);
+
+  const requestId = payload.requestId ? String(payload.requestId).trim() : "";
+  if (requestId) {
+    const existing = db.prepare(
+      "SELECT * FROM appointments WHERE idempotencyKey = @k AND clientId = @c AND status != 'cancelled' ORDER BY createdAt DESC LIMIT 1"
+    ).get({ k: requestId, c: access.userId });
+    if (existing) return mapBooking(existing);
+  }
+
+  const holdId = payload.holdId ? String(payload.holdId).trim() : "";
+  if (holdId) {
+    const hold = db.prepare(
+      "SELECT * FROM slot_reservations WHERE id = @id AND branchId = @b LIMIT 1"
+    ).get({ id: holdId, b: branchId });
+    if (!hold || hold.status !== "holding" || hold.reservedUntil <= new Date().toISOString()) {
+      throw conflict("Your selected slot has expired. Please choose a slot again.");
+    }
+  }
+
+  const blocker = overlapConflict({ branchId, staffId: person.id, startAt, endAt, excludeHoldId: holdId });
+  if (blocker) {
+    throw conflict("Selected slot is no longer available", blocker.type === "hold" ? { held: true } : undefined);
+  }
+
   const created = insertRow("appointments", {
     id: id("appt"),
     tenantId: business.tenantId || access.tenantId,
     clientId: access.userId,
     staffId: person.id,
-    branchId: business.branchId || business.id,
+    branchId,
     serviceIds: [service.id],
-    startAt: payload.startAt,
-    endAt: addMinutesIso(payload.startAt, service.durationMinutes),
+    startAt,
+    endAt,
     status: "booked",
     source: "customer-app",
     onlineStatus: "pending-confirmation",
     notes: payload.notes || "",
-    billable: 1
+    billable: 1,
+    idempotencyKey: requestId,
+    reservedFromSlotId: holdId
   });
   customerNotificationService.safeNotifyAppointmentCreated(created, true);
   return mapBooking(created);
@@ -264,12 +328,20 @@ function rescheduleBooking(access, bookingId, payload = {}) {
   const business = businessForBranch(row.branchId);
   const service = serviceById(serviceId, business?.slug || business?.id || row.branchId);
   if (!service) throw badRequest("Selected service is not available for this salon");
+  const startAt = utcIso(payload.startAt);
+  const endAt = addMinutesIso(startAt, service.durationMinutes || 60);
+  const staffId = payload.staffId || row.staffId || "";
+  const blocker = overlapConflict({ branchId: row.branchId, staffId, startAt, endAt });
+  if (blocker) {
+    throw conflict("Selected slot is no longer available", blocker.type === "hold" ? { held: true } : undefined);
+  }
   const updated = updateRow("appointments", row.id, {
-    startAt: payload.startAt,
-    endAt: addMinutesIso(payload.startAt, service.durationMinutes || 60),
+    startAt,
+    endAt,
     serviceIds: [service.id],
-    staffId: payload.staffId || row.staffId,
-    status: "booked"
+    staffId,
+    status: "booked",
+    reservedFromSlotId: payload.holdId || row.reservedFromSlotId || ""
   }, { tenantId: access.tenantId });
   customerNotificationService.safeNotifyAppointmentChanged(row, updated);
   return mapBooking(updated);

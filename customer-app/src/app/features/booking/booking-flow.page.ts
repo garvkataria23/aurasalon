@@ -2184,6 +2184,7 @@ export class BookingFlowPage implements OnInit, OnDestroy {
   readonly slotHoldSeconds = signal<number | null>(null);
   readonly slotExpiredWarning = signal<string>("");
   private holdTimerInterval: any = null;
+  private holdGeneration = 0;
 
   readonly visibleAvailabilityDays = computed(() => {
     const all = this.availabilityDays();
@@ -3194,8 +3195,10 @@ async reload() {
     let createdCount = 0;
     const createdBookingIds: string[] = [];
     const createdBookings: Booking[] = [];
+    const holdId = this.activeHoldId() || undefined;
     try {
       for (const item of items) {
+        const requestId = `req_${business.id}_${item.serviceId}_${item.slotStartAt}`;
         const booking = await this.marketplace.createBooking({
           businessSlug: business.slug,
           businessId: business.id,
@@ -3204,17 +3207,26 @@ async reload() {
           startAt: item.slotStartAt,
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
           notes: this.customerNote().trim() || undefined,
-          paymentMode: "pay_at_venue"
+          paymentMode: "pay_at_venue",
+          holdId,
+          requestId
         });
         createdCount += 1;
         createdBookingIds.push(booking.id);
         createdBookings.push(booking);
       }
-} catch {
+    } catch (err) {
+      if (createdCount > 0) {
+        for (const createdId of createdBookingIds) {
+          try { await this.marketplace.cancelBooking(createdId); } catch { /* best-effort compensation */ }
+        }
+      }
       const remaining = items.length - createdCount;
-      this.marketplace.error.set(createdCount > 0
-        ? `${createdCount} service${createdCount === 1 ? "" : "s"} were booked, but ${remaining} could not be completed. Opening My bookings so you can verify before retrying.`
-        : this.marketplace.error() || "Could not complete booking. Please try again.");
+      this.marketplace.error.set(
+        createdCount > 0
+          ? "Some services could not be completed, so your partially-booked slots were released. Please try again."
+          : this.readableBookingError(err)
+      );
       if (this.activeHoldId()) {
         this.releaseActiveHold();
         this.activeHoldId.set(null);
@@ -3222,8 +3234,12 @@ async reload() {
       this.clearPendingIntent();
       this.marketplace.clearBookingDraft();
       const target = createdBookingIds.length === 1 ? this.bookingDetailUrl(createdBookingIds[0]) : (this.marketplace.salonMode() ? this.marketplace.salonModeUrl("bookings") : "/tabs/bookings");
-      await this.router.navigateByUrl(target);
-      this.step.set(4);
+      if (createdCount === 0) {
+        this.step.set(3);
+      } else {
+        await this.router.navigateByUrl(target);
+        this.step.set(4);
+      }
       return;
     }
     if (this.activeHoldId()) {
@@ -3249,6 +3265,20 @@ async reload() {
   private bookingDetailUrl(id: string): string {
     return this.marketplace.salonMode() ? this.marketplace.salonModeUrl("bookings", id) : `/bookings/${encodeURIComponent(id)}`;
   }
+
+  private readableBookingError(err: unknown): string {
+    const status = err && typeof err === "object" && "status" in err ? Number((err as { status?: unknown }).status) : 0;
+    const body = err && typeof err === "object" && "error" in err ? (err as { error?: unknown }).error : null;
+    const msg = body && typeof body === "object" && "message" in body
+      ? String((body as { message?: unknown }).message || "")
+      : "";
+    if (status === 409) return msg || "That slot was just taken. Please choose another time.";
+    if (status === 403) return "Your session no longer has access to this salon. Please refresh and try again.";
+    if (status === 404) return msg || "That service or salon is no longer available.";
+    if (status === 0) return "Unable to reach the server. Please check your connection and try again.";
+    return msg || "Could not complete the booking. Please try again.";
+  }
+
 
   private async revalidateSelectedSlot(): Promise<boolean> {
     for (let index = 0; index < this.bookingItems().length; index += 1) {
@@ -3608,9 +3638,13 @@ formatHoldTimer(seconds: number): string {
   }
 
   async startHoldTimer() {
+    const myGen = ++this.holdGeneration;
     this.slotHoldSeconds.set(300);
     this.slotExpiredWarning.set("");
-    if (this.holdTimerInterval) clearInterval(this.holdTimerInterval);
+    if (this.holdTimerInterval) {
+      clearInterval(this.holdTimerInterval);
+      this.holdTimerInterval = null;
+    }
 
     const business = this.business();
     const items = this.bookingItems();
@@ -3635,14 +3669,24 @@ formatHoldTimer(seconds: number): string {
         startAt,
         durationMinutes
       }, { tenantId: business.tenantId, branchId: business.id });
+      if (myGen !== this.holdGeneration) {
+        if (this.activeHoldId() === hold.holdId) {
+          this.activeHoldId.set(null);
+        } else {
+          void this.marketplace.releaseSlotHold(hold.holdId, { tenantId: business.tenantId, branchId: business.id }).catch(() => {});
+        }
+        return;
+      }
       this.activeHoldId.set(hold.holdId);
       const expiresAt = new Date(hold.expiresAt).getTime();
       const updateTimer = () => {
+        if (myGen !== this.holdGeneration) return;
         const now = Date.now();
         const remaining = Math.max(0, Math.ceil((expiresAt - now) / 1000));
         this.slotHoldSeconds.set(remaining);
         if (remaining <= 1) {
           clearInterval(this.holdTimerInterval);
+          this.holdTimerInterval = null;
           this.slotHoldSeconds.set(null);
           this.activeHoldId.set(null);
           this.slotExpiredWarning.set("Your slot reservation expired. Please pick a slot again.");
@@ -3650,18 +3694,10 @@ formatHoldTimer(seconds: number): string {
       };
       updateTimer();
       this.holdTimerInterval = setInterval(updateTimer, 1000);
-    } catch (error) {
-      console.warn("Slot hold failed, using local timer:", error);
-      this.holdTimerInterval = setInterval(() => {
-        const current = this.slotHoldSeconds();
-        if (current === null || current <= 1) {
-          clearInterval(this.holdTimerInterval);
-          this.slotHoldSeconds.set(null);
-          this.slotExpiredWarning.set("Your 5-minute slot reservation expired. Please pick a slot again.");
-        } else {
-          this.slotHoldSeconds.set(current - 1);
-        }
-      }, 1000);
+    } catch {
+      if (myGen !== this.holdGeneration) return;
+      this.slotExpiredWarning.set("We could not reserve this slot for you. Please re-select it and confirm.");
+      this.slotHoldSeconds.set(null);
     }
   }
 
@@ -3676,6 +3712,7 @@ formatHoldTimer(seconds: number): string {
 
 async selectActiveSlot(slot: AvailabilitySlot) {
     if (!this.isSlotSelectable(slot)) return;
+    this.holdGeneration += 1;
     if (this.activeHoldId()) {
       this.releaseActiveHold();
       this.activeHoldId.set(null);

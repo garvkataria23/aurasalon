@@ -165,7 +165,14 @@ export class AuthService {
     if (!refreshToken) throw unauthorized("Refresh token is required");
     const tokenHash = hashToken(refreshToken);
     const record = repositories.authRefreshTokens.list({ limit: 100000 }, {}).find((item) => item.tokenHash === tokenHash);
-    if (!record || record.revokedAt || record.expiresAt <= now()) throw unauthorized("Refresh token is invalid or expired");
+    if (!record) throw unauthorized("Refresh token is invalid or expired");
+    if (record.revokedAt) {
+      repositories.authRefreshTokens.list({ limit: 100000 }, { tenantId: record.tenantId })
+        .filter((item) => item.userId === record.userId && !item.revokedAt)
+        .forEach((item) => repositories.authRefreshTokens.update(item.id, { revokedAt: now() }, { tenantId: record.tenantId }));
+      throw unauthorized("Refresh token reuse detected. Session has been revoked.");
+    }
+    if (record.expiresAt <= now()) throw unauthorized("Refresh token is invalid or expired");
     const tenant = repositories.tenants.getById(record.tenantId);
     const user = repositories.tenantUsers.getById(record.userId, { tenantId: record.tenantId });
     if (!tenant || !user) throw unauthorized("Refresh token account no longer exists");
@@ -293,6 +300,8 @@ export class AuthService {
     if (!safeEqual(sign(unsigned), parts[2])) throw unauthorized("JWT signature is invalid");
     const payload = JSON.parse(decodeBase64Url(parts[1]));
     if (!payload.exp || payload.exp <= Math.floor(Date.now() / 1000)) throw unauthorized("JWT has expired");
+    if (payload.iss && payload.iss !== "aura-salon-api") throw unauthorized("JWT issuer is invalid");
+    if (payload.aud && payload.aud !== "aura-mobile") throw unauthorized("JWT audience is invalid");
     return payload;
   }
 

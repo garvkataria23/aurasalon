@@ -463,7 +463,7 @@ function addDays(date, days) {
 function slotIso(date, minutes) {
   const hour = Math.floor(minutes / 60);
   const minute = minutes % 60;
-  return `${date}T${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00${IST_OFFSET}`;
+  return new Date(`${date}T${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00${IST_OFFSET}`).toISOString();
 }
 
 function displayTime(minutes) {
@@ -481,15 +481,22 @@ function periodLabel(minutes) {
 }
 
 function appointmentRows(tenantId, branchId, rangeStart, rangeEnd) {
-  return db.prepare(`
+  const rows = db.prepare(`
     SELECT id, staffId, startAt, endAt, status
     FROM appointments
     WHERE tenantId = @tenantId
       AND branchId = @branchId
       AND LOWER(COALESCE(status, '')) NOT IN ('cancelled', 'completed', 'no_show')
-      AND datetime(startAt) < datetime(@rangeEnd)
-      AND datetime(COALESCE(endAt, startAt)) > datetime(@rangeStart)
-  `).all({ tenantId, branchId, rangeStart, rangeEnd });
+  `).all({ tenantId, branchId });
+  const rs = new Date(rangeStart).getTime();
+  const re = new Date(rangeEnd).getTime();
+  if (Number.isNaN(rs) || Number.isNaN(re)) return rows;
+  return rows.filter((row) => {
+    const start = new Date(row.startAt).getTime();
+    const end = new Date(row.endAt || row.startAt).getTime();
+    if (Number.isNaN(start) || Number.isNaN(end)) return false;
+    return start < re && end > rs;
+  });
 }
 
 function overlaps(aStart, aEnd, bStart, bEnd) {

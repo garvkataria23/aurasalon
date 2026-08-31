@@ -367,6 +367,8 @@ export interface CreateBookingPayload {
   offerId?: string;
   notes?: string;
   paymentMode: "pay_at_venue" | "online";
+  holdId?: string;
+  requestId?: string;
 }
 
 export interface Booking {
