@@ -1,0 +1,16 @@
+{
+  "loggedIn": false,
+  "confirm": false,
+  "confirmedUrl": "/tabs/search",
+  "finalBody": "",
+  "slotHoldResponses": [],
+  "slotHold201": false,
+  "slotHold403": false,
+  "slotHold404": false,
+  "responseErrors": [],
+  "consoleHolds": [],
+  "prodHits": null,
+  "hosts": [
+    "127.0.0.1:4311"
+  ]
+}

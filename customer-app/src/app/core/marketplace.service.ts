@@ -597,15 +597,15 @@ private readSalonModeContext(): SalonModeContext | null {
     });
   }
 
-  async createSlotHold(payload: SlotHoldPayload): Promise<SlotHold> {
+  async createSlotHold(payload: SlotHoldPayload, context?: { tenantId?: string; branchId?: string }): Promise<SlotHold> {
     return this.run("Unable to reserve slot", async () => {
-      const hold = await firstValueFrom(this.api.createSlotHold(payload));
+      const hold = await firstValueFrom(this.api.createSlotHold(payload, context));
       return hold;
     });
   }
 
-  async releaseSlotHold(holdId: string): Promise<void> {
-    await firstValueFrom(this.api.releaseSlotHold(holdId));
+  async releaseSlotHold(holdId: string, context?: { tenantId?: string; branchId?: string }): Promise<void> {
+    await firstValueFrom(this.api.releaseSlotHold(holdId, context));
   }
 
   async logout() {

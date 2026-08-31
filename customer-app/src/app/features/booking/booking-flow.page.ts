@@ -2639,7 +2639,7 @@ readonly step = signal(Number(this.route.snapshot.queryParamMap.get("step") || (
       this.holdTimerInterval = null;
     }
     if (this.activeHoldId()) {
-      this.marketplace.releaseSlotHold(this.activeHoldId()!).catch(() => {});
+      this.releaseActiveHold();
       this.activeHoldId.set(null);
     }
   }
@@ -2650,7 +2650,7 @@ readonly step = signal(Number(this.route.snapshot.queryParamMap.get("step") || (
       this.holdTimerInterval = null;
     }
     if (this.activeHoldId()) {
-      this.marketplace.releaseSlotHold(this.activeHoldId()!).catch(() => {});
+      this.releaseActiveHold();
     }
   }
 
@@ -3216,7 +3216,7 @@ async reload() {
         ? `${createdCount} service${createdCount === 1 ? "" : "s"} were booked, but ${remaining} could not be completed. Opening My bookings so you can verify before retrying.`
         : this.marketplace.error() || "Could not complete booking. Please try again.");
       if (this.activeHoldId()) {
-        await this.marketplace.releaseSlotHold(this.activeHoldId()!).catch(() => {});
+        this.releaseActiveHold();
         this.activeHoldId.set(null);
       }
       this.clearPendingIntent();
@@ -3227,7 +3227,7 @@ async reload() {
       return;
     }
     if (this.activeHoldId()) {
-      await this.marketplace.releaseSlotHold(this.activeHoldId()!).catch(() => {});
+      this.releaseActiveHold();
       this.activeHoldId.set(null);
     }
     this.clearPendingIntent();
@@ -3634,7 +3634,7 @@ formatHoldTimer(seconds: number): string {
         branchId: business.id,
         startAt,
         durationMinutes
-      });
+      }, { tenantId: business.tenantId, branchId: business.id });
       this.activeHoldId.set(hold.holdId);
       const expiresAt = new Date(hold.expiresAt).getTime();
       const updateTimer = () => {
@@ -3665,10 +3665,19 @@ formatHoldTimer(seconds: number): string {
     }
   }
 
+  private releaseActiveHold(): void {
+    if (!this.activeHoldId()) return;
+    const business = this.business();
+    void this.marketplace.releaseSlotHold(this.activeHoldId()!, {
+      tenantId: business?.tenantId,
+      branchId: business?.id
+    }).catch(() => {});
+  }
+
 async selectActiveSlot(slot: AvailabilitySlot) {
     if (!this.isSlotSelectable(slot)) return;
     if (this.activeHoldId()) {
-      await this.marketplace.releaseSlotHold(this.activeHoldId()!).catch(() => {});
+      this.releaseActiveHold();
       this.activeHoldId.set(null);
     }
     if (this.holdTimerInterval) {

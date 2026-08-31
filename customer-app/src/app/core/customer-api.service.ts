@@ -1,4 +1,4 @@
-import { HttpClient, HttpParams } from "@angular/common/http";
+import { HttpClient, HttpHeaders, HttpParams } from "@angular/common/http";
 import { Injectable } from "@angular/core";
 import { map, Observable } from "rxjs";
 import { environment } from "../../environments/environment";
@@ -308,14 +308,24 @@ joinBookingWaitlist(id: string, payload: JoinWaitlistPayload = {}): Observable<C
     );
   }
 
-  createSlotHold(payload: SlotHoldPayload): Observable<SlotHold> {
-    return this.http.post<ApiResponse<SlotHold>>(`${this.baseUrl}/customer/slot-holds`, payload).pipe(
+  createSlotHold(payload: SlotHoldPayload, context?: { tenantId?: string; branchId?: string }): Observable<SlotHold> {
+    const headers = this.slotHoldHeaders(context);
+    return this.http.post<ApiResponse<SlotHold>>(`${this.baseUrl}/customer/slot-holds`, payload, headers ? { headers } : undefined).pipe(
       map((response) => this.unwrap<SlotHold>(response))
     );
   }
 
-  releaseSlotHold(holdId: string): Observable<{ ok: true }> {
-    return this.http.delete<ApiResponse<{ ok: true }>>(`${this.baseUrl}/customer/slot-holds/${encodeURIComponent(holdId)}`).pipe(
+  private slotHoldHeaders(context?: { tenantId?: string; branchId?: string }): HttpHeaders | null {
+    if (!context?.tenantId && !context?.branchId) return null;
+    let headers = new HttpHeaders();
+    if (context.tenantId) headers = headers.set("x-tenant-id", context.tenantId);
+    if (context.branchId) headers = headers.set("x-branch-id", context.branchId);
+    return headers;
+  }
+
+  releaseSlotHold(holdId: string, context?: { tenantId?: string; branchId?: string }): Observable<{ ok: true }> {
+    const headers = this.slotHoldHeaders(context);
+    return this.http.delete<ApiResponse<{ ok: true }>>(`${this.baseUrl}/customer/slot-holds/${encodeURIComponent(holdId)}`, headers ? { headers } : undefined).pipe(
       map((response) => this.unwrap<{ ok: true }>(response))
     );
   }
