@@ -489,20 +489,29 @@ function activeOffers(tenantId, branchId) {
        WHERE tenantId = @tenantId
          AND status = 'active'
          AND (branchId = @branchId OR COALESCE(branchId, '') = '')
-         AND (endDate = '' OR datetime(endDate) >= datetime('now'))
        ORDER BY datetime(createdAt) DESC
-       LIMIT 5`
+       LIMIT 20`
     )
     .all({ tenantId, branchId });
 
-  return rows.map((r) => ({
-    id: r.id,
-    title: r.title || "",
-    discountType: r.discountType || "",
-    discountValue: Number(r.discountValue || 0),
-    validFrom: r.startDate || "",
-    validTo: r.endDate || "",
-  }));
+  const nowMs = Date.now();
+  return rows
+    .filter((r) => {
+      const end = String(r.endDate || "").trim();
+      if (!end) return true;
+      const endIso = String(end).length <= 10 ? `${String(end).slice(0, 10)}T23:59:59+05:30` : new Date(end).toISOString();
+      const endMs = new Date(endIso).getTime();
+      return Number.isFinite(endMs) && endMs >= nowMs;
+    })
+    .slice(0, 5)
+    .map((r) => ({
+      id: r.id,
+      title: r.title || "",
+      discountType: r.discountType || "",
+      discountValue: Number(r.discountValue || 0),
+      validFrom: r.startDate || "",
+      validTo: r.endDate || "",
+    }));
 }
 
 // ─── Dashboard (main) ─────────────────────────────────────────────
