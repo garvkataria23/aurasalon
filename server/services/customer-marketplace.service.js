@@ -512,10 +512,25 @@ function isStaffFree(person, appointments, startAt, endAt) {
   });
 }
 
-function availabilityDay({ date, service, staff, appointments }) {
+function weekdayName(date, timezone = DEFAULT_TIMEZONE) {
+  return new Intl.DateTimeFormat("en-US", { weekday: "long", timeZone: timezone }).format(new Date(`${date}T12:00:00${IST_OFFSET}`)).toLowerCase();
+}
+
+function dayHoursForDate(hours, date, timezone = DEFAULT_TIMEZONE) {
+  const day = hours?.[weekdayName(date, timezone)];
+  if (day && day.open === false) return { open: false, openMinutes: 0, closeMinutes: 0 };
+  const openMinutes = timeToMinutes(day?.opensAt || day?.openingTime || DEFAULT_OPEN) ?? (10 * 60);
+  const closeMinutes = timeToMinutes(day?.closesAt || day?.closingTime || DEFAULT_CLOSE) ?? (20 * 60);
+  return { open: true, openMinutes, closeMinutes };
+}
+
+function availabilityDay({ date, service, staff, appointments, dayHours }) {
   const duration = Math.max(15, Number(service.durationMinutes || 60));
-  const openMinutes = 10 * 60;
-  const closeMinutes = 20 * 60;
+  if (!dayHours?.open) {
+    return { date, label: "", dayLabel: "", periods: [] };
+  }
+  const openMinutes = dayHours.openMinutes;
+  const closeMinutes = dayHours.closeMinutes;
   const now = Date.now() + 30 * 60 * 1000;
   const groups = new Map();
   for (let minutes = openMinutes; minutes + duration <= closeMinutes; minutes += 30) {
@@ -622,8 +637,15 @@ export const customerMarketplaceService = {
     const rangeStart = new Date(`${dates[0]}T00:00:00${IST_OFFSET}`).toISOString();
     const rangeEnd = new Date(`${addDays(dates[dates.length - 1], 1)}T00:00:00${IST_OFFSET}`).toISOString();
     const appointments = appointmentRows(business.tenantId, business.branchId, rangeStart, rangeEnd);
+    const timezone = business.timezone || DEFAULT_TIMEZONE;
+    const profile = publicProfile(business);
+    const businessHours = parseJson(profile.business_hours_json, {});
+    const publishBusinessHours = parseJson(profile.social_links_json || "{}", {}).showBusinessHours !== false;
     return dates
-      .map((date) => availabilityDay({ date, service, staff, appointments }))
+      .map((date) => {
+        const dayHours = publishBusinessHours ? dayHoursForDate(businessHours, date, timezone) : { open: true, openMinutes: 10 * 60, closeMinutes: 20 * 60 };
+        return availabilityDay({ date, service, staff, appointments, dayHours });
+      })
       .filter((day) => day.periods.length > 0);
   }
 };
