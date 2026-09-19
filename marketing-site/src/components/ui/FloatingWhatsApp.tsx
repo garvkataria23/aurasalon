@@ -93,7 +93,7 @@ export function FloatingWhatsApp() {
 
   if (!open) {
     return (
-      <div className="fixed bottom-6 right-6 z-[9990] flex items-center gap-3">
+      <div className="fixed bottom-[max(1rem,calc(env(safe-area-inset-bottom)+1rem))] right-4 z-[9990] flex items-center gap-3 sm:bottom-24 sm:right-6">
         {/* Small quick WhatsApp floating badge */}
         <a
           href={WHATSAPP_URL}
