@@ -2,8 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search, ArrowRight, Globe, FileText, Layout, Phone, CreditCard, Users, Briefcase, Workflow, BookOpen } from "lucide-react";
-import { useLanguage } from "@/components/providers/LanguageProvider";
+import { Search, ArrowRight, FileText, Layout, Phone, CreditCard, Users, Briefcase, Workflow, BookOpen } from "lucide-react";
 
 type CommandItem = {
   id: string;
@@ -28,15 +27,14 @@ const commands: CommandItem[] = [
   { id: "blog", label: "Blog", labelHi: "ब्लॉग", href: "/blog", icon: BookOpen, group: "company" },
 ];
 
-const groupLabels: Record<string, { en: string; hi: string }> = {
-  product: { en: "Product", hi: "प्रोडक्ट" },
-  action: { en: "Get Started", hi: "शुरू करें" },
-  company: { en: "Company", hi: "कंपनी" },
+const groupLabels: Record<string, string> = {
+  product: "Product",
+  action: "Get Started",
+  company: "Company",
 };
 
 export function CommandPalette() {
   const router = useRouter();
-  const { language, setLanguage } = useLanguage();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -155,36 +153,23 @@ export function CommandPalette() {
                   setQuery(e.target.value);
                   setSelectedIndex(0);
                 }}
-                placeholder={language === "hi" ? "खोजें..." : "Search pages, features..."}
+                placeholder="Search pages, features..."
                 className="flex-1 bg-transparent text-sm text-aura-text placeholder:text-aura-text-muted focus:outline-none"
                 aria-label="Search"
               />
-              <div className="flex items-center gap-1">
-                {(["en", "hi"] as const).map((opt) => (
-                  <button
-                    key={opt}
-                    type="button"
-                    onClick={() => setLanguage(opt)}
-                    className={`min-h-11 min-w-11 rounded-md px-1.5 py-0.5 text-[10px] font-bold transition-colors ${language === opt ? "bg-aura-primary text-white" : "text-aura-text-muted hover:bg-aura-surface-muted"}`}
-                    aria-label={`Switch to ${opt === "en" ? "English" : "Hindi"}`}
-                  >
-                    {opt === "en" ? "EN" : "हिं"}
-                  </button>
-                ))}
-              </div>
             </div>
 
             {/* Results */}
             <div ref={listRef} className="max-h-[50vh] overflow-y-auto p-2" role="listbox">
-              {filtered.length === 0 && (
-                <p className="px-4 py-8 text-center text-sm text-aura-text-muted">
-                  {language === "hi" ? "कोई परिणाम नहीं मिला" : "No results found"}
-                </p>
-              )}
+{filtered.length === 0 && (
+                  <p className="px-4 py-8 text-center text-sm text-aura-text-muted">
+                    No results found
+                  </p>
+                )}
               {Object.entries(grouped).map(([group, items]) => (
                 <div key={group} className="mb-1">
                   <p className="px-3 py-2 text-[10px] font-bold uppercase tracking-[.14em] text-aura-text-muted">
-                    {groupLabels[group]?.[language as "en" | "hi"] || group}
+                    {groupLabels[group] || group}
                   </p>
                   {items.map((item) => {
                     const globalIndex = filtered.indexOf(item);
@@ -204,7 +189,7 @@ export function CommandPalette() {
                           <Icon className="h-4 w-4" aria-hidden="true" />
                         </span>
                         <span className="flex-1 min-w-0">
-                          <span className="block truncate font-medium">{language === "hi" && item.labelHi ? item.labelHi : item.label}</span>
+                          <span className="block truncate font-medium">{item.label}</span>
                           <span className="block truncate text-xs text-aura-text-muted">{item.href}</span>
                         </span>
                         <ArrowRight className="h-3.5 w-3.5 shrink-0 opacity-50" aria-hidden="true" />
@@ -218,7 +203,6 @@ export function CommandPalette() {
             {/* Footer hint */}
             <div className="flex items-center justify-between border-t border-aura-border px-4 py-2 text-[11px] text-aura-text-muted">
               <span>↑↓ navigate · ↵ open · esc close</span>
-              <span className="flex items-center gap-1"><Globe className="h-3 w-3" aria-hidden="true" /> {language === "hi" ? "भाषा बदलें" : "Language"}</span>
             </div>
           </div>
         </>

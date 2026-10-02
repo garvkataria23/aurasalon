@@ -2,7 +2,6 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
-import { LanguageProvider } from "@/components/providers/LanguageProvider";
 
 const Navbar = dynamic(() => import("@/components/layout/Navbar").then((mod) => mod.Navbar), { ssr: false });
 
@@ -25,9 +24,7 @@ export function NavbarDeferredLoader() {
   return ready ? (
     <>
       <style>{`.static-nav-fallback{display:none}`}</style>
-      <LanguageProvider>
-        <Navbar />
-      </LanguageProvider>
+      <Navbar />
     </>
   ) : null;
 }
